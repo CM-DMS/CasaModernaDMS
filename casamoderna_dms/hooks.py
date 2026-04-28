@@ -224,7 +224,7 @@ fixtures = [
 	},
 	{
 		"dt": "Role",
-		"filters": [["name", "in", ["CasaModerna Sales Console", "CasaModerna Products Console", "CasaModerna Product Maintainer", "CasaModerna Suppliers Console", "CasaModerna Supplier Maintainer", "CasaModerna Price Supervisor"]]],
+		"filters": [["name", "in", ["CM Director", "CM Admin", "CM Sales Manager", "CM Office Admin", "CM Accounts", "CM Warehouse", "CM Sales"]]],
 	},
 	{
 		"dt": "Workspace",

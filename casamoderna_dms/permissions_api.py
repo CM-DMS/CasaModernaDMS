@@ -13,7 +13,7 @@ import frappe
 def get_permissions_overview():
     """Return a complete permissions overview for the admin viewer."""
     roles = frappe.get_roles()
-    if not any(r in roles for r in ("System Manager", "CM Super Admin", "Administrator")):
+    if not any(r in roles for r in ("System Manager", "CM Admin", "CM Director", "Administrator")):
         frappe.throw("Access denied", frappe.PermissionError)
 
     # 1. Users with their roles and profile
@@ -66,17 +66,17 @@ def get_permissions_overview():
 def assign_role_profile(user, profile):
     """Assign a Role Profile to a user, replacing their current roles with the profile's roles."""
     roles = frappe.get_roles()
-    if not any(r in roles for r in ("System Manager", "CM Super Admin", "Administrator")):
+    if not any(r in roles for r in ("System Manager", "CM Admin", "CM Director", "Administrator")):
         frappe.throw("Access denied", frappe.PermissionError)
 
     if not profile:
         frappe.throw("Profile name is required")
 
-    # Safety: never allow downgrading users who have CM Super Admin or System Manager
+    # Safety: never allow downgrading users who have CM Admin/Director or System Manager
     target_roles = frappe.get_all(
         "Has Role", filters={"parent": user, "parenttype": "User"}, pluck="role"
     )
-    if any(r in target_roles for r in ("CM Super Admin", "System Manager")):
+    if any(r in target_roles for r in ("CM Admin", "CM Director", "System Manager")):
         frappe.throw(
             f"{user} has admin-level roles. Change their roles manually in Frappe Desk to prevent accidental lockout.",
             frappe.PermissionError,

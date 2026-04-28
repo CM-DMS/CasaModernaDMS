@@ -265,7 +265,7 @@ def save_leave_request(doc):
 	return d.as_dict()
 
 
-LEAVE_REVIEWER_ROLE = "CM Super Admin"
+LEAVE_REVIEWER_ROLE = "CM Admin"
 
 
 def _get_leave_reviewers():
@@ -304,7 +304,7 @@ def _notify_leave(for_user, subject, doc_name, from_user=None):
 def review_leave_request(name, status, notes=None):
 	"""Approve or reject a leave request. Restricted to CM Super Admin."""
 	if LEAVE_REVIEWER_ROLE not in frappe.get_roles(frappe.session.user):
-		frappe.throw(frappe._("Only users with the CM Super Admin role can approve or reject leave requests."), frappe.PermissionError)
+		frappe.throw(frappe._("Only users with the CM Admin role can approve or reject leave requests."), frappe.PermissionError)
 
 	if status not in ("Approved", "Rejected"):
 		frappe.throw(frappe._("Status must be Approved or Rejected."))

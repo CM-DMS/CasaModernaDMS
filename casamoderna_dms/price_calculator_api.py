@@ -25,9 +25,8 @@ def _require_sales_read():
     user_roles = set(frappe.get_roles(frappe.session.user))
     allowed = {
         "Administrator", "System Manager",
-        "CasaModerna Product Maintainer",
-        "CasaModerna Sales Console", "Sales Manager", "Sales User",
-        "Owner / Director", "CM Super Admin",
+        "CM Director", "CM Admin", "CM Sales Manager",
+        "CM Office Admin", "CM Sales",
     }
     if not (allowed & user_roles):
         frappe.throw(_("Not permitted"), frappe.PermissionError)

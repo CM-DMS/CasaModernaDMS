@@ -1,47 +1,83 @@
-// Authoritative role name constants — matches V2 ONE-CasaModernaDMS exactly.
+/**
+ * Casa Moderna DMS — role constants and permission groups.
+ *
+ * Seven job-profile roles for the 9-person team.
+ * Add ROLES.DIRECTOR, ROLES.ADMIN, and ROLES.SYSTEM_MGR to every group —
+ * they are the top-level principals and must always have full access.
+ */
+
 export const ROLES = {
-  DIRECTOR:           'Owner / Director',
-  SUPER_ADMIN:        'CM Super Admin',
-  SALES_CONSOLE:      'CasaModerna Sales Console',
-  PRODUCT_MAINT:      'CasaModerna Product Maintainer',
-  PRODUCTS_VIEW:      'CasaModerna Products Console',
-  SUPPLIER_MAINT:     'CasaModerna Supplier Maintainer',
-  SUPPLIERS_VIEW:     'CasaModerna Suppliers Console',
-  PRICE_SUPERVISOR:   'CasaModerna Price Supervisor',
-  PURCHASING_CONSOLE: 'CasaModerna Purchasing Console',
-  CREDIT_MANAGER:     'CasaModerna Credit Manager',
-  VOUCHER_AUTHORIZER: 'Voucher Authorizer',
-  LOGISTICS:          'CasaModerna Logistics',
-  SALES_MANAGER:      'Sales Manager',
-  SALES_USER:         'Sales User',
-  ACCOUNTS_MGR:       'Accounts Manager',
-  ACCOUNTS_USER:      'Accounts User',
-  STOCK_MGR:          'Stock Manager',
-  STOCK_USER:         'Stock User',
-  PURCHASE_MGR:       'Purchase Manager',
-  PURCHASE_USER:      'Purchase User',
-  SYSTEM_MGR:         'System Manager',
+  // ── Custom CM roles (one per job profile) ────────────────────────────────
+  DIRECTOR:    'CM Director',      // Owner / business principal
+  ADMIN:       'CM Admin',         // System administrator (full access, excl. Director-only)
+  SALES_MGR:   'CM Sales Manager', // Sales & purchase manager
+  OFFICE_ADMIN:'CM Office Admin',  // Office administrator
+  ACCOUNTS:    'CM Accounts',      // Accounts manager
+  WAREHOUSE:   'CM Warehouse',     // Warehouse person
+  SALES:       'CM Sales',         // Sales staff
+
+  // ── ERPNext built-in (kept for system-level desk access) ─────────────────
+  SYSTEM_MGR:  'System Manager',
 } as const
 
 export function hasRole(userRoles: string[], ...check: string[]): boolean {
   return check.some((r) => userRoles.includes(r))
 }
 
-// INVARIANT: ROLES.SYSTEM_MGR, ROLES.DIRECTOR, ROLES.SUPER_ADMIN appear in every group.
+// Shorthand — every group starts with these three principals.
+const TOP: string[] = ['CM Director', 'CM Admin', 'System Manager']
+
+/**
+ * Permission groups — each maps to a feature area of the application.
+ * can('groupName') returns true if the user holds any role in that group.
+ *
+ * RULE: ROLES.DIRECTOR, ROLES.ADMIN, ROLES.SYSTEM_MGR must be in every group.
+ */
 export const ROLE_GROUPS: Record<string, string[]> = {
-  canSeeFinancialTotals: [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.ACCOUNTS_MGR, ROLES.ACCOUNTS_USER, ROLES.LOGISTICS],
-  canSeePricing:        [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.PRODUCT_MAINT, ROLES.SUPPLIER_MAINT, ROLES.PURCHASE_MGR],
-  canEditCustomer:      [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.SALES_CONSOLE, ROLES.SALES_MANAGER],
-  canEditProduct:       [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.PRODUCT_MAINT, ROLES.SUPPLIER_MAINT],
-  canManageUsers:       [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR],
-  canSales:             [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.SALES_CONSOLE, ROLES.SALES_MANAGER, ROLES.SALES_USER],
-  canWarehouse:         [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.STOCK_MGR, ROLES.STOCK_USER],
-  canStockAdmin:        [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.STOCK_MGR],
-  canPurchasing:        [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.SUPPLIER_MAINT, ROLES.PURCHASE_MGR, ROLES.PURCHASE_USER, ROLES.PURCHASING_CONSOLE],
-  canFinance:           [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.ACCOUNTS_MGR, ROLES.ACCOUNTS_USER, ROLES.SALES_MANAGER, ROLES.LOGISTICS],
-  canFinanceAccounting: [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.ACCOUNTS_MGR],
-  canFinanceReports:    [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.ACCOUNTS_MGR],
-  canAdmin:             [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR],
-  canPriceSupervisor:   [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.PRICE_SUPERVISOR],
-  canConfirmSO:         [ROLES.DIRECTOR, ROLES.SUPER_ADMIN, ROLES.SYSTEM_MGR, ROLES.SALES_MANAGER, ROLES.ACCOUNTS_MGR],
+  // ── Sales & CRM ────────────────────────────────────────────────────────────
+  canSales:              [...TOP, ROLES.SALES_MGR, ROLES.OFFICE_ADMIN, ROLES.SALES],
+  canEditCustomer:       [...TOP, ROLES.SALES_MGR, ROLES.OFFICE_ADMIN, ROLES.SALES],
+
+  // ── Products & Pricing ────────────────────────────────────────────────────
+  canEditProduct:        [...TOP, ROLES.SALES_MGR],
+  canSeePricing:         [...TOP, ROLES.SALES_MGR, ROLES.ACCOUNTS],
+  canManagePriceLists:   [...TOP, ROLES.SALES_MGR],
+  canPriceSupervisor:    [...TOP, ROLES.SALES_MGR],  // approve below-floor price overrides
+
+  // ── Purchasing ─────────────────────────────────────────────────────────────
+  canPurchasing:         [...TOP, ROLES.SALES_MGR],
+  canAutoPR:             [...TOP, ROLES.SALES_MGR],
+  canSupplierPerf:       [...TOP, ROLES.SALES_MGR],
+
+  // ── Warehouse & Stock ──────────────────────────────────────────────────────
+  canWarehouse:          [...TOP, ROLES.SALES_MGR, ROLES.WAREHOUSE],
+  canStockAdmin:         [...TOP, ROLES.SALES_MGR, ROLES.WAREHOUSE],
+
+  // ── Service, Vouchers, Projects, Warranty ────────────────────────────────
+  canService:            [...TOP, ROLES.SALES_MGR, ROLES.OFFICE_ADMIN, ROLES.SALES],
+  canVouchers:           [...TOP, ROLES.SALES_MGR, ROLES.OFFICE_ADMIN, ROLES.SALES],
+  canAuthorizeVouchers:  [...TOP, ROLES.SALES_MGR],
+  canWarranty:           [...TOP, ROLES.SALES_MGR, ROLES.OFFICE_ADMIN, ROLES.SALES],
+  canProjects:           [...TOP, ROLES.SALES_MGR, ROLES.SALES],
+
+  // ── Operations ────────────────────────────────────────────────────────────
+  canOperations:         [...TOP, ROLES.SALES_MGR, ROLES.WAREHOUSE, ROLES.SALES],
+
+  // ── Finance ───────────────────────────────────────────────────────────────
+  canFinance:            [...TOP, ROLES.SALES_MGR, ROLES.ACCOUNTS, ROLES.OFFICE_ADMIN],
+  canFinanceAccounting:  [...TOP, ROLES.ACCOUNTS],
+  canFinanceReports:     [...TOP, ROLES.ACCOUNTS],           // director + accounts only (tight)
+  canCashHandover:       [...TOP, ROLES.SALES_MGR, ROLES.ACCOUNTS, ROLES.OFFICE_ADMIN],
+  canConfirmDailyReceipt:[ROLES.DIRECTOR],                   // owner receives cash — director only
+  canBankRecon:          [...TOP, ROLES.ACCOUNTS],
+  canAnalytics:          [...TOP, ROLES.SALES_MGR, ROLES.ACCOUNTS],
+  canSeeFinancialTotals: [...TOP, ROLES.SALES_MGR, ROLES.ACCOUNTS, ROLES.OFFICE_ADMIN],
+
+  // ── Credit & SO approvals ─────────────────────────────────────────────────
+  canGrantCredit:        [...TOP, ROLES.SALES_MGR, ROLES.ACCOUNTS],
+  canConfirmSO:          [...TOP, ROLES.SALES_MGR],          // sales manager or above
+
+  // ── Administration ────────────────────────────────────────────────────────
+  canAdmin:              [...TOP],
+  canManageUsers:        [...TOP],
 }

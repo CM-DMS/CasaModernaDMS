@@ -100,8 +100,9 @@ export function Sidebar() {
             <NavItem to="/purchases/cfg-tracker"              icon="🛋️" label="Special Orders" />
             <NavItem to="/purchases/orders"                   icon="📑" label="Purchase Orders" />
             <NavItem to="/purchases/grn"                      icon="📥" label="GRN" />
-            <NavItem to="/purchasing/fulfillment-review"      icon="✅" label="Fulfilment Review" />
+            <NavItem to="/sales/fulfillment-queue"      icon="✅" label="Fulfilment Review" />
             <NavItem to="/purchasing/items-to-order"          icon="📋" label="Purchase Planner" />
+            <NavItem to="/purchases/procurement-dispatch"      icon="📤" label="Items to Source" />
             {can('canAutoPR') && (
               <NavItem to="/purchases/reorder-suggestions"    icon="🔔" label="Reorder Alerts" />
             )}

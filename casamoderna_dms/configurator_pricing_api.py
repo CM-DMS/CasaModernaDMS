@@ -30,17 +30,17 @@ _MIN_WEIGHT_FLOOR = 3.0
 # ---------------------------------------------------------------------------
 
 def _require_product_maintainer():
-	allowed_roles = {"CasaModerna Product Maintainer", "System Manager", "Owner / Director", "CM Super Admin"}
+	allowed_roles = {"CM Sales Manager", "System Manager", "CM Director", "CM Admin"}
 	user_roles = set(frappe.get_roles(frappe.session.user))
 	if not (allowed_roles & user_roles):
-		frappe.throw("Not permitted. Requires CasaModerna Product Maintainer role.", frappe.PermissionError)
+		frappe.throw("Not permitted. Requires CM Sales Manager role or above.", frappe.PermissionError)
 
 
 def _require_sales_or_admin():
 	allowed_roles = {
-		"CasaModerna Sales Console", "CasaModerna Product Maintainer",
-		"System Manager", "Owner / Director", "CM Super Admin",
-		"Sales Manager", "Sales User",
+		"CM Director", "CM Admin", "CM Sales Manager",
+		"CM Office Admin", "CM Accounts", "CM Sales",
+		"System Manager",
 	}
 	user_roles = set(frappe.get_roles(frappe.session.user))
 	if not (allowed_roles & user_roles):

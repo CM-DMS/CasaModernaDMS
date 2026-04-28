@@ -104,6 +104,7 @@ import { BankReconciliation } from './screens/finance/BankReconciliation'
 import { FinancialReports } from './screens/finance/FinancialReports'
 import { VatReturn } from './screens/finance/VatReturn'
 import { ItemsToOrder } from './screens/purchases/ItemsToOrder'
+import { ProcurementDispatch } from './screens/purchases/ProcurementDispatch'
 import { AutoPRScreen } from './screens/purchases/AutoPRScreen'
 import { CfgOrderTracker } from './screens/purchases/CfgOrderTracker'
 import { FreeTextReviews } from './screens/purchases/FreeTextReviews'
@@ -179,6 +180,7 @@ export default function App() {
               <Route path="/purchases/grn/new" element={<GRNEditor />} />
               <Route path="/purchases/grn/:id/edit" element={<GRNEditor />} />
               <Route path="/purchasing/items-to-order" element={<ItemsToOrder />} />
+              <Route path="/purchases/procurement-dispatch" element={<ProcurementDispatch />} />
               <Route path="/purchases/reorder-suggestions" element={<AutoPRScreen />} />
               <Route path="/purchases/cfg-tracker" element={<CfgOrderTracker />} />
               <Route path="/purchases/freetext-reviews" element={<FreeTextReviews />} />

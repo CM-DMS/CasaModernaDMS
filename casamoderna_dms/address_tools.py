@@ -14,7 +14,7 @@ def _require_sales_context() -> None:
 	# Keep this aligned with role-gated client scripts.
 	if frappe.session.user == "Administrator":
 		return
-	if _has_any_role({"System Manager", "Sales User", "CasaModerna Sales Console"}):
+	if _has_any_role({"System Manager", "CM Director", "CM Admin", "CM Sales Manager", "CM Office Admin", "CM Sales"}):
 		return
 	raise frappe.PermissionError
 
