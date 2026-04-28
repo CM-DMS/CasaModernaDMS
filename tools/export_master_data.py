@@ -43,8 +43,8 @@ import pymysql.cursors
 V2_DB_CONFIG = {
     "host": "127.0.0.1",
     "port": 3306,
-    "user": "root",
-    "password": "Kalkara1031",  # noqa: S106  — local DB, not public
+    "user": "_f34a597d4aee1881",
+    "password": "qAMPzjsZULDoyX7r",  # noqa: S106  — local DB, not public
     "db": "_f34a597d4aee1881",
     "charset": "utf8mb4",
     "cursorclass": pymysql.cursors.DictCursor,
@@ -112,7 +112,7 @@ def export_warehouses(conn: pymysql.Connection, out_dir: Path) -> None:
 def export_localities(conn: pymysql.Connection, out_dir: Path) -> None:
     print("Exporting CM Localities …")
     rows = fetch_all(conn, """
-        SELECT name, locality_name, postcode, district, country
+        SELECT name, locality_name, sort_order
         FROM `tabCM Locality`
         ORDER BY locality_name
     """)
@@ -125,7 +125,8 @@ def export_suppliers(conn: pymysql.Connection, out_dir: Path) -> None:
         SELECT s.name, s.supplier_name, s.supplier_group, s.supplier_type,
                s.country, s.website, s.disabled, s.is_internal_supplier,
                s.default_currency, s.modified,
-               s.cm_supplier_code, s.cm_payment_terms, s.cm_notes
+               s.cm_abbr, s.cm_bank_name, s.cm_bank_iban, s.cm_bank_bic,
+               s.cm_bank_address, s.cm_internal_notes, s.cm_supplier_ref_3
         FROM `tabSupplier` s
         ORDER BY s.name
     """)
@@ -182,7 +183,6 @@ def export_price_lists(conn: pymysql.Connection, out_dir: Path) -> None:
 
 def export_items(conn: pymysql.Connection, out_dir: Path) -> None:
     print("Exporting Items (this may take a moment) …")
-    # Fetch all item fields including all known custom fields
     rows = fetch_all(conn, """
         SELECT
             i.name, i.item_code, i.item_name, i.item_group,
@@ -193,17 +193,27 @@ def export_items(conn: pymysql.Connection, out_dir: Path) -> None:
             i.weight_per_unit, i.weight_uom,
             i.country_of_origin, i.customs_tariff_number,
             i.last_purchase_rate, i.modified,
-            -- Custom fields (cm_* prefix)
             i.cm_product_code, i.cm_product_type, i.cm_display_name,
-            i.cm_catalogue_description, i.cm_is_tile,
-            i.cm_box_sqm, i.cm_sqm_per_box, i.cm_pieces_per_box,
-            i.cm_tile_finish, i.cm_tile_size, i.cm_tile_collection,
-            i.cm_lead_time_days, i.cm_min_order_qty,
-            i.cm_configurator_type, i.cm_configurator_model,
-            i.cm_rrp_inc_vat, i.cm_selling_price_inc_vat,
-            i.cm_cost_price, i.cm_supplier_code,
-            i.cm_is_freetext_placeholder, i.cm_freetext_category,
-            i.cm_warranty_months, i.cm_notes
+            i.cm_description_line_1, i.cm_description_line_2,
+            i.cm_given_name, i.cm_family_code, i.cm_finish_code,
+            i.cm_role_name, i.cm_variant, i.cm_dimensions,
+            i.cm_tiles_per_box, i.cm_sqm_per_box,
+            i.cm_supplier_name, i.cm_supplier_code, i.cm_supplier_item_code,
+            i.cm_supplier_item_name, i.cm_supplier_currency, i.cm_supplier_pack,
+            i.cm_supplier_variant_description,
+            i.cm_rrp_ex_vat, i.cm_rrp_inc_vat, i.cm_discounted_inc_vat,
+            i.cm_final_offer_inc_vat, i.cm_final_offer_ex_vat,
+            i.cm_purchase_price_ex_vat, i.cm_cost_ex_vat_calculated,
+            i.cm_vat_rate_percent, i.cm_discount_percent,
+            i.cm_discount_1_percent, i.cm_discount_2_percent, i.cm_discount_3_percent,
+            i.cm_increase_before_percent, i.cm_increase_after_percent,
+            i.cm_discount_target_percent, i.cm_shipping_percent,
+            i.cm_shipping_fee, i.cm_handling_fee, i.cm_other_landed,
+            i.cm_landed_additions_total_ex_vat, i.cm_rounding_delta,
+            i.cm_pricing_rounding_mode, i.cm_pricing_mode_ui,
+            i.cm_margin_percent, i.cm_markup_percent, i.cm_profit_ex_vat,
+            i.cm_weight_factor, i.cm_delivery_installation_fee,
+            i.cm_hidden_from_catalogue
         FROM `tabItem` i
         WHERE i.disabled = 0 OR i.disabled IS NULL
         ORDER BY i.item_code
@@ -227,12 +237,7 @@ def export_item_suppliers(conn: pymysql.Connection, out_dir: Path) -> None:
     print("Exporting Item Supplier rows (supplier ladders) …")
     rows = fetch_all(conn, """
         SELECT isp.parent AS item_code, isp.name, isp.supplier,
-               isp.supplier_part_no, isp.lead_time_days,
-               isp.min_order_qty, isp.idx,
-               -- custom supplier pricing fields
-               isp.cm_cost_price_a, isp.cm_cost_price_b, isp.cm_cost_price_c,
-               isp.cm_tier_a_min_qty, isp.cm_tier_b_min_qty, isp.cm_tier_c_min_qty,
-               isp.cm_supplier_sku, isp.cm_notes
+               isp.supplier_part_no, isp.idx
         FROM `tabItem Supplier` isp
         ORDER BY isp.parent, isp.idx
     """)
@@ -242,15 +247,17 @@ def export_item_suppliers(conn: pymysql.Connection, out_dir: Path) -> None:
 def export_configurator_pricing(conn: pymysql.Connection, out_dir: Path) -> None:
     print("Exporting CM Configurator Pricing …")
     configs = fetch_all(conn, """
-        SELECT name, price_list, configurator_type, enabled, modified
+        SELECT name, price_list, configurator_type, valid_from, valid_to, modified
         FROM `tabCM Configurator Pricing`
         ORDER BY name
     """)
 
     # Fetch matrix rows
     matrices = fetch_all(conn, """
-        SELECT parent, name, tier_name, role_name, option_code,
-               offer_price_inc_vat, rrp_inc_vat, cost_price, idx
+        SELECT parent, name, tier_name, role_name, mode, option_code,
+               handle_variant, finish_code, seat_count,
+               extra_key_1, extra_key_2,
+               offer_price_inc_vat, rrp_inc_vat, cost_price, notes, idx
         FROM `tabCM Configurator Pricing Matrix`
         ORDER BY parent, idx
     """)
