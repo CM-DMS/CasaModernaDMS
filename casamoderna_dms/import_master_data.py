@@ -86,6 +86,7 @@ def upsert_doc(doctype: str, data: dict, key_field: str = "name", dry_run: bool 
             doc.flags.ignore_permissions = True
             doc.flags.ignore_validate = True
             doc.flags.ignore_mandatory = True
+            doc.flags.ignore_version = True
             doc.save()
         return "updated"
     else:
@@ -95,6 +96,7 @@ def upsert_doc(doctype: str, data: dict, key_field: str = "name", dry_run: bool 
             doc.flags.ignore_permissions = True
             doc.flags.ignore_validate = True
             doc.flags.ignore_mandatory = True
+            doc.flags.ignore_version = True
             doc.insert()
         return "created"
 
@@ -243,6 +245,7 @@ def import_suppliers(data_dir: Path, dry_run: bool) -> Stats:
                         })
                         doc.flags.ignore_permissions = True
                         doc.flags.ignore_mandatory = True
+                        doc.flags.ignore_links = True
                         doc.insert()
                 except Exception as ce:
                     stats.error_details.append(f"Contact {contact_data.get('name')}: {ce}")
@@ -273,6 +276,15 @@ def import_items(data_dir: Path, dry_run: bool) -> Stats:
     stats = Stats()
     for r in records:
         try:
+            # Drop standard_rate so after_insert won't auto-create an Item Price
+            # (we import item prices via import_item_prices separately)
+            r.pop("standard_rate", None)
+            r.pop("last_purchase_rate", None)
+            # Ensure the stock_uom is in the UOM Conversion Factor table so
+            # any remaining validation can resolve it.
+            stock_uom = r.get("stock_uom") or "Nos"
+            if not r.get("uoms"):
+                r["uoms"] = [{"uom": stock_uom, "conversion_factor": 1}]
             result = upsert_doc("Item", r, key_field="item_code", dry_run=dry_run)
             if result == "created": stats.created += 1
             elif result == "updated": stats.updated += 1
@@ -303,9 +315,15 @@ def import_item_suppliers(data_dir: Path, dry_run: bool) -> Stats:
     records = load(data_dir, "item_suppliers.json")
     stats = Stats()
 
+    # V2 supplier names that differ from V3 supplier names
+    SUPPLIER_MAP = {
+        "Topline Mobili": "Topline Mobili Srl",
+    }
+
     # Group by item
     by_item: dict[str, list] = {}
     for r in records:
+        r["supplier"] = SUPPLIER_MAP.get(r["supplier"], r["supplier"])
         by_item.setdefault(r["item_code"], []).append(r)
 
     for item_code, rows in by_item.items():
@@ -423,6 +441,7 @@ def import_users(data_dir: Path, dry_run: bool) -> Stats:
                 doc.update(u)
                 # Set a temporary random password — user must reset on first login
                 doc.new_password = frappe.generate_hash(length=12)
+                doc.role_profile_name = None  # skip role profile — assign roles directly
                 for role in roles:
                     if role in valid_roles:
                         doc.append("roles", {"role": role})
@@ -431,6 +450,7 @@ def import_users(data_dir: Path, dry_run: bool) -> Stats:
                 if not dry_run:
                     doc.flags.ignore_permissions = True
                     doc.flags.ignore_password_policy = True
+                    doc.flags.ignore_links = True
                     doc.insert()
                 stats.created += 1
         except Exception as e:
