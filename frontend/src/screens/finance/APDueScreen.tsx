@@ -106,7 +106,7 @@ function PayPanel({ bill, modes, onPaid, onCancel }: {
     setError(null)
     try {
       const result = await frappe.call<Record<string, unknown>>(
-        'casamoderna_dms.ap_payment_api.make_payment',
+        'casamoderna_dms.ap_payment_api.make_ap_payment',
         { bill_name: bill.bill_name, amount: amt, mode_of_payment: mop,
           posting_date: postingDate, reference_no: referenceNo,
           reference_date: referenceDate, remarks },

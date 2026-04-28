@@ -131,7 +131,7 @@ export function BillDetail() {
     setPayError('')
     try {
       const result = await frappe.call<{ payment_entry: string }>(
-        'casamoderna_dms.ap_payment_api.make_payment',
+        'casamoderna_dms.ap_payment_api.make_ap_payment',
         {
           bill_name: doc!.name,
           amount: amt,
