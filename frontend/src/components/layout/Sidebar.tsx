@@ -62,18 +62,20 @@ export function Sidebar() {
 
         {(can('canSales') || can('canAdmin')) && (
           <NavGroup heading="Sales &amp; CRM">
-            <NavItem to="/customers"           icon="👥" label="Customers" />
-            <NavItem to="/sales/quotations"    icon="💬" label="Quotations" />
-            <NavItem to="/sales/proformas"     icon="📋" label="Proformas" />
-            <NavItem to="/sales/orders"        icon="🛒" label="Sales Orders" />
-            <NavItem to="/sales/invoices"      icon="🧾" label="Invoices" />
-            <NavItem to="/sales/cash-sales"    icon="💵" label="Cash Sales" />
-            <NavItem to="/sales/credit-notes"  icon="↩️" label="Credit Notes" />
-            <NavItem to="/sales/receipts"      icon="💰" label="Receipts" />
+            <NavItem to="/customers"                    icon="👥" label="Customers" />
+            <NavItem to="/customers/registrations"      icon="📋" label="Registrations" />
+            <NavItem to="/customers/reports"            icon="📝" label="Customer Reports" />
+            <NavItem to="/sales/quotations"             icon="💬" label="Quotations" />
+            <NavItem to="/sales/proformas"              icon="📃" label="Proformas" />
+            <NavItem to="/sales/orders"                 icon="🛒" label="Sales Orders" />
+            <NavItem to="/sales/invoices"               icon="🧾" label="Invoices" />
+            <NavItem to="/sales/cash-sales"             icon="💵" label="Cash Sales" />
+            <NavItem to="/sales/credit-notes"           icon="↩️" label="Credit Notes" />
+            <NavItem to="/sales/receipts"               icon="💰" label="Receipts" />
             {can('canConfirmSO') && (
-              <NavItem to="/sales/queue"       icon="⏳" label="Pending Confirmation" />
+              <NavItem to="/sales/queue"                icon="⏳" label="Pending Confirmation" />
             )}
-            <NavItem to="/sales/search"      icon="🔍" label="Sales Search" />
+            <NavItem to="/sales/search"                 icon="🔍" label="Sales Search" />
           </NavGroup>
         )}
 
@@ -81,37 +83,32 @@ export function Sidebar() {
           <NavItem to="/products" icon="🏷️" label="Product Catalogue" />
         </NavGroup>
 
-        {(can('canSales') || can('canAdmin') || can('canVouchers') || can('canAuthorizeVouchers')) && (
-          <NavGroup heading="Customers">
-            {(can('canSales') || can('canAdmin')) && (
-              <NavItem to="/customers/registrations" icon="📝" label="Registrations" />
-            )}
-            {(can('canVouchers') || can('canAdmin')) && (
-              <NavItem to="/customers/vouchers" icon="🎁" label="Gift Vouchers" />
-            )}
-            {can('canAuthorizeVouchers') && (
-              <NavItem to="/customers/vouchers/approvals" icon="✅" label="Voucher Approvals" />
-            )}
-            {(can('canVouchers') || can('canAdmin')) && (
-              <NavItem to="/vouchers/redeem" icon="💳" label="Redeem Voucher" />
-            )}
-            {(can('canSales') || can('canAdmin')) && (
-              <NavItem to="/customers/reports" icon="📋" label="Customer Reports" />
-            )}
+        <NavGroup heading="Tools">
+          <NavItem to="/tools/tiles-calculator" icon="📐" label="Tiles Calculator" />
+        </NavGroup>
+
+        {(can('canManagePriceLists') || can('canAdmin')) && (
+          <NavGroup heading="Pricing">
+            <NavItem to="/admin/pricing-calculators" icon="🧮" label="Pricing Calculators" />
+            <NavItem to="/admin/price-lists"         icon="💶" label="Price Lists" />
           </NavGroup>
         )}
 
         {(can('canPurchasing') || can('canAdmin')) && (
           <NavGroup heading="Purchasing">
             <NavItem to="/suppliers"                          icon="🏭" label="Suppliers" />
+            <NavItem to="/purchases/cfg-tracker"              icon="🛋️" label="Special Orders" />
             <NavItem to="/purchases/orders"                   icon="📑" label="Purchase Orders" />
             <NavItem to="/purchases/grn"                      icon="📥" label="GRN" />
-            <NavItem to="/sales/queue"                        icon="✅" label="Fulfilment Review" />
-            <NavItem to="/purchasing/items-to-order"          icon="🛒" label="Purchase Planner" />
-            <NavItem to="/purchases/reorder-suggestions"      icon="🔄" label="Reorder Suggestions" />
-            <NavItem to="/purchases/cfg-tracker"              icon="🎛️" label="CFG Order Tracker" />
+            <NavItem to="/purchasing/fulfillment-review"      icon="✅" label="Fulfilment Review" />
+            <NavItem to="/purchasing/items-to-order"          icon="📋" label="Purchase Planner" />
+            {can('canAutoPR') && (
+              <NavItem to="/purchases/reorder-suggestions"    icon="🔔" label="Reorder Alerts" />
+            )}
             <NavItem to="/purchases/freetext-reviews"         icon="📝" label="Free Text Reviews" />
-            <NavItem to="/purchases/supplier-performance"     icon="📊" label="Supplier Performance" />
+            {can('canSupplierPerf') && (
+              <NavItem to="/purchases/supplier-performance"   icon="📊" label="Supplier Performance" />
+            )}
             <NavItem to="/configurator"                       icon="⚙️" label="Configurator Pricing" />
           </NavGroup>
         )}
@@ -137,6 +134,20 @@ export function Sidebar() {
           </NavGroup>
         )}
 
+        {(can('canVouchers') || can('canAuthorizeVouchers') || can('canAdmin')) && (
+          <NavGroup heading="Vouchers">
+            {(can('canVouchers') || can('canAdmin')) && (
+              <NavItem to="/customers/vouchers"             icon="🎁" label="Gift Vouchers" />
+            )}
+            {(can('canVouchers') || can('canAdmin')) && (
+              <NavItem to="/vouchers/redeem"                icon="💳" label="Redeem Voucher" />
+            )}
+            {(can('canAuthorizeVouchers') || can('canAdmin')) && (
+              <NavItem to="/customers/vouchers/approvals"   icon="✅" label="Voucher Approvals" />
+            )}
+          </NavGroup>
+        )}
+
         {(can('canService') || can('canAdmin')) && (
           <NavGroup heading="Service">
             <NavItem to="/service/job-cards"  icon="🔧" label="Job Cards" />
@@ -145,36 +156,52 @@ export function Sidebar() {
           </NavGroup>
         )}
 
-        {(can('canSales') || can('canAdmin')) && (
+        {(can('canProjects') || can('canSales') || can('canAdmin')) && (
           <NavGroup heading="Projects">
-            <NavItem to="/projects" icon="📐" label="Projects" />
+            <NavItem to="/projects" icon="🏗️" label="Fit-Out Projects" />
           </NavGroup>
         )}
 
         {(can('canOperations') || can('canAdmin')) && (
           <NavGroup heading="Operations">
-            <NavItem to="/operations/calendar"     icon="📅" label="Calendar" />
-            <NavItem to="/operations/appointments" icon="🍳" label="Appointments" />
-            <NavItem to="/operations/leave"        icon="🌴" label="Leave Requests" />
+            <NavItem to="/operations/calendar"     icon="📅" label="Operations Calendar" />
+            <NavItem to="/operations/appointments" icon="🗓️" label="Appointments" />
+            <NavItem to="/operations/leave"        icon="🏖️" label="Leave Requests" />
             {can('canAdmin') && <NavItem to="/operations/sms-log" icon="📱" label="SMS Log" />}
           </NavGroup>
         )}
 
-        {can('canAdmin') && (
-          <NavGroup heading="Admin">
-            <NavItem to="/admin/users"               icon="👥" label="Users &amp; Roles" />
-            <NavItem to="/admin/audit-log"           icon="📋" label="Audit Log" />
-            <NavItem to="/admin/permissions"         icon="🔐" label="Permissions" />
-            <NavItem to="/admin/price-lists"         icon="💰" label="Price Lists" />
-            <NavItem to="/admin/pricing-calculators" icon="🧮" label="Pricing Calculators" />
-            <NavItem to="/admin/backup-restore"      icon="💾" label="Backup &amp; Restore" />
-            <NavItem to="/admin/data-reset"          icon="⚠️" label="Data Reset" />
+        {(can('canFinance') || can('canFinanceAccounting') || can('canFinanceReports') || can('canCashHandover') || can('canAdmin')) && (
+          <NavGroup heading="Finance">
+            {(can('canCashHandover') || can('canAdmin')) && (
+              <NavItem to="/finance/collections" icon="💳" label="Daily Collections" />
+            )}
+            {(can('canCashHandover') || can('canAdmin')) && (
+              <NavItem to="/finance/handover"    icon="🤝" label="Cash Handover" />
+            )}
+            {(can('canFinanceAccounting') || can('canAdmin')) && (
+              <NavItem to="/finance/journals"    icon="📔" label="Journal Entries" />
+            )}
+            {(can('canFinanceAccounting') || can('canAdmin')) && (
+              <NavItem to="/finance/ap-due"      icon="⚠️" label="AP Due" />
+            )}
+            {(can('canFinance') || can('canAdmin')) && (
+              <NavItem to="/finance/bills"       icon="🗂️" label="Bills" />
+            )}
+            {(can('canFinanceReports') || can('canAdmin')) && (
+              <NavItem to="/finance/aged"        icon="📋" label="Aged Debtors / Creditors" />
+            )}
+            {(can('canFinanceAccounting') || can('canAdmin')) && (
+              <NavItem to="/finance/bank-reconciliation" icon="🏦" label="Bank Reconciliation" />
+            )}
+            {(can('canFinanceReports') || can('canAdmin')) && (
+              <NavItem to="/finance/reports"     icon="📈" label="Financial Reports" />
+            )}
+            {(can('canFinanceReports') || can('canAdmin')) && (
+              <NavItem to="/finance/vat-return"  icon="🧾" label="VAT Return" />
+            )}
           </NavGroup>
         )}
-
-        <NavGroup heading="Tools">
-          <NavItem to="/tools/tiles-calculator" icon="📐" label="Tiles Calculator" />
-        </NavGroup>
 
         {can('canPriceSupervisor') && (
           <NavGroup heading="Management">
@@ -182,36 +209,13 @@ export function Sidebar() {
           </NavGroup>
         )}
 
-        {(can('canFinance') || can('canFinanceAccounting') || can('canFinanceReports') || can('canAdmin')) && (
-          <NavGroup heading="Finance">
-            <NavItem to="/finance/aged"  icon="📋" label="Aged Debtors / Creditors" />
-            <NavItem to="/finance/bills" icon="🗂️" label="Bills" />
-            {(can('canFinance') || can('canFinanceAccounting') || can('canAdmin')) && (
-              <NavItem to="/finance/ap-due" icon="⏰" label="AP Due" />
-            )}
-            {(can('canFinance') || can('canAdmin')) && (
-              <NavItem to="/finance/collections" icon="💰" label="Daily Collections" />
-            )}
-            {(can('canFinance') || can('canAdmin')) && (
-              <NavItem to="/finance/handover" icon="🤝" label="Cash Handover" />
-            )}
-            {(can('canFinanceAccounting') || can('canAdmin')) && (
-              <NavItem to="/finance/journals" icon="📓" label="Journal Entries" />
-            )}
-            {(can('canFinanceAccounting') || can('canAdmin')) && (
-              <NavItem to="/finance/bank-reconciliation" icon="🏦" label="Bank Reconciliation" />
-            )}
-            {(can('canFinanceReports') || can('canAdmin')) && (
-              <NavItem to="/finance/reports" icon="📈" label="Financial Reports" />
-            )}
-            {(can('canFinanceAccounting') || can('canAdmin')) && (
-              <NavItem to="/finance/vat-return" icon="🧾" label="VAT Return" />
-            )}
-          </NavGroup>
-        )}
-
         {can('canAdmin') && (
-          <NavGroup heading="System">
+          <NavGroup heading="Admin">
+            <NavItem to="/admin/users"               icon="🔑" label="Users &amp; Roles" />
+            <NavItem to="/admin/permissions"         icon="🛂" label="Permissions" />
+            <NavItem to="/admin/audit-log"           icon="🛡️" label="Audit Log" />
+            <NavItem to="/admin/backup-restore"      icon="💾" label="Backup &amp; Restore" />
+            <NavItem to="/admin/data-reset"          icon="🔄" label="Data Reset" />
             <a
               href="/app"
               target="_blank"
