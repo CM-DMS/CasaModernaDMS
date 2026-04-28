@@ -15,12 +15,16 @@ import { CustomerList } from './screens/customers/CustomerList'
 import { CustomerProfile } from './screens/customers/CustomerProfile'
 import { QuotationList } from './screens/sales/QuotationList'
 import { QuotationDetail } from './screens/sales/QuotationDetail'
+import { QuotationEditor } from './screens/sales/QuotationEditor'
 import { SalesOrderList } from './screens/sales/SalesOrderList'
 import { SalesOrderDetail } from './screens/sales/SalesOrderDetail'
+import { SalesOrderEditor } from './screens/sales/SalesOrderEditor'
 import { SalesInvoiceList } from './screens/sales/SalesInvoiceList'
 import { SalesInvoiceDetail } from './screens/sales/SalesInvoiceDetail'
+import { SalesInvoiceEditor } from './screens/sales/SalesInvoiceEditor'
 import { DeliveryNoteList } from './screens/sales/DeliveryNoteList'
 import { DeliveryNoteDetail } from './screens/sales/DeliveryNoteDetail'
+import { DeliveryNoteEditor } from './screens/sales/DeliveryNoteEditor'
 import { PurchaseOrderList } from './screens/purchases/PurchaseOrderList'
 import { PurchaseOrderDetail } from './screens/purchases/PurchaseOrderDetail'
 import { GRNList } from './screens/purchases/GRNList'
@@ -48,13 +52,21 @@ export default function App() {
 
               {/* Sales */}
               <Route path="/sales/quotations" element={<QuotationList />} />
+              <Route path="/sales/quotations/new" element={<QuotationEditor />} />
               <Route path="/sales/quotations/:name" element={<QuotationDetail />} />
+              <Route path="/sales/quotations/:name/edit" element={<QuotationEditor />} />
               <Route path="/sales/orders" element={<SalesOrderList />} />
+              <Route path="/sales/orders/new" element={<SalesOrderEditor />} />
               <Route path="/sales/orders/:name" element={<SalesOrderDetail />} />
+              <Route path="/sales/orders/:name/edit" element={<SalesOrderEditor />} />
               <Route path="/sales/invoices" element={<SalesInvoiceList />} />
+              <Route path="/sales/invoices/new" element={<SalesInvoiceEditor />} />
               <Route path="/sales/invoices/:name" element={<SalesInvoiceDetail />} />
+              <Route path="/sales/invoices/:name/edit" element={<SalesInvoiceEditor />} />
               <Route path="/sales/delivery-notes" element={<DeliveryNoteList />} />
+              <Route path="/sales/delivery-notes/new" element={<DeliveryNoteEditor />} />
               <Route path="/sales/delivery-notes/:name" element={<DeliveryNoteDetail />} />
+              <Route path="/sales/delivery-notes/:name/edit" element={<DeliveryNoteEditor />} />
 
               {/* Catalogue */}
               <Route path="/products" element={<ProductList />} />
