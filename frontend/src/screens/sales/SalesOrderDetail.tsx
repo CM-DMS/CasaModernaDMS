@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
 import {
@@ -6,6 +6,8 @@ import {
   DataTable, ErrorBox, type Column,
 } from '../../components/shared/ui'
 import { StatusBadge } from '../../components/shared/StatusBadge'
+import { DocActions } from '../../components/shared/DocActions'
+import { usePermissions } from '../../auth/PermissionsProvider'
 import { fmtDate, fmtDeliveryMonth, fmtMoney, fmtDiscount } from '../../utils/fmt'
 
 interface SalesOrderDoc {
@@ -67,11 +69,12 @@ const itemColumns: Column<SalesOrderItem>[] = [
 export function SalesOrderDetail() {
   const { name } = useParams<{ name: string }>()
   const navigate = useNavigate()
+  const { can } = usePermissions()
   const [doc, setDoc] = useState<SalesOrderDoc | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!name) return
     setLoading(true)
     frappe.getDoc<SalesOrderDoc>('Sales Order', name)
@@ -79,6 +82,8 @@ export function SalesOrderDetail() {
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load sales order'))
       .finally(() => setLoading(false))
   }, [name])
+
+  useEffect(() => { load() }, [load])
 
   if (loading) return <div className="py-12 text-center text-gray-400">Loading…</div>
   if (error) return <ErrorBox message={error} />
@@ -92,9 +97,23 @@ export function SalesOrderDetail() {
         title={doc.name}
         subtitle={doc.customer_name}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
             {doc.workflow_state && <StatusBadge status={doc.workflow_state} />}
             <StatusBadge status={doc.status} docstatus={doc.docstatus} />
+            <DocActions
+              doctype="Sales Order"
+              name={doc.name}
+              docstatus={doc.docstatus ?? 0}
+              canSubmit={can('canSales')}
+              canCancel={can('canAdmin')}
+              conversions={[
+                ...(doc.docstatus === 1 && (can('canWarehouse') || can('canSales'))
+                  ? ['Delivery Note'] : []),
+                ...(doc.docstatus === 1 && (can('canFinance') || can('canSales'))
+                  ? ['Sales Invoice'] : []),
+              ]}
+              onComplete={load}
+            />
           </div>
         }
       />

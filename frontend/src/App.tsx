@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
+import { PermissionsProvider } from './auth/PermissionsProvider'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { Layout } from './components/layout/Layout'
 import { LoginPage } from './screens/auth/LoginPage'
@@ -33,6 +34,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <PermissionsProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
@@ -79,6 +81,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        </PermissionsProvider>
       </AuthProvider>
     </BrowserRouter>
   )
