@@ -120,11 +120,17 @@ def import_item_groups(data_dir: Path, dry_run: bool) -> Stats:
         try:
             # V2 top-level groups have NULL parent — default to "All Item Groups"
             parent = r.get("parent_item_group") or "All Item Groups"
+            # If this group already has children in V3 it must be is_group=1
+            is_group = r.get("is_group", 0)
+            if not is_group:
+                has_children = frappe.db.exists("Item Group", {"parent_item_group": r["name"]})
+                if has_children:
+                    is_group = 1
             result = upsert_doc("Item Group", {
                 "name": r["name"],
                 "item_group_name": r.get("item_group_name", r["name"]),
                 "parent_item_group": parent,
-                "is_group": r.get("is_group", 0),
+                "is_group": is_group,
             }, dry_run=dry_run)
             if result == "created":
                 stats.created += 1
@@ -420,34 +426,50 @@ def import_configurator_pricing(data_dir: Path, dry_run: bool) -> Stats:
             if dry_run or not matrix:
                 continue
 
-            # Insert matrix rows (skip if already present)
-            # Reload to get the latest modified timestamp before saving
-            # (avoids TimestampMismatchError if doc was touched between load and save)
-            config_doc = frappe.get_doc("CM Configurator Pricing", r["name"])
-            existing_rows = config_doc.get("matrix") or []
-            existing = {(m.get("tier_name"), m.get("option_code")) for m in existing_rows}
+            # Use direct DB insert for matrix rows to bypass doc hooks entirely
+            existing_keys = set(
+                frappe.db.sql(
+                    """SELECT CONCAT(IFNULL(tier_name,''), '|', IFNULL(option_code,''))
+                       FROM `tabCM Configurator Pricing Matrix`
+                       WHERE parent=%s""",
+                    r["name"], as_list=True
+                ) or []
+            )
+            existing_keys = {row[0] for row in existing_keys}
             for m in matrix:
-                key = (m.get("tier_name"), m.get("option_code"))
-                if key not in existing:
-                    config_doc.append("matrix", {
-                        "tier_name": m.get("tier_name"),
-                        "role_name": m.get("role_name"),
-                        "mode": m.get("mode"),
-                        "option_code": m.get("option_code"),
-                        "handle_variant": m.get("handle_variant"),
-                        "finish_code": m.get("finish_code"),
-                        "seat_count": m.get("seat_count", 0),
-                        "extra_key_1": m.get("extra_key_1"),
-                        "extra_key_2": m.get("extra_key_2"),
-                        "offer_price_inc_vat": m.get("offer_price_inc_vat"),
-                        "rrp_inc_vat": m.get("rrp_inc_vat"),
-                        "cost_price": m.get("cost_price"),
-                        "notes": m.get("notes"),
-                    })
-            config_doc.flags.ignore_permissions = True
-            config_doc.flags.ignore_validate = True
-            config_doc.flags.ignore_links = True
-            config_doc.save(ignore_version=True)
+                key = f"{m.get('tier_name') or ''}|{m.get('option_code') or ''}"
+                if key not in existing_keys:
+                    frappe.db.sql(
+                        """INSERT INTO `tabCM Configurator Pricing Matrix`
+                           (name, parent, parenttype, parentfield, idx,
+                            tier_name, role_name, mode, option_code,
+                            handle_variant, finish_code, seat_count,
+                            extra_key_1, extra_key_2,
+                            offer_price_inc_vat, rrp_inc_vat, cost_price, notes)
+                           VALUES (%s, %s, 'CM Configurator Pricing', 'matrix_rows', %s,
+                                   %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            frappe.generate_hash(length=10),
+                            r["name"],
+                            m.get("idx", 0),
+                            m.get("tier_name"),
+                            m.get("role_name"),
+                            m.get("mode"),
+                            m.get("option_code"),
+                            m.get("handle_variant"),
+                            m.get("finish_code"),
+                            m.get("seat_count", 0),
+                            m.get("extra_key_1"),
+                            m.get("extra_key_2"),
+                            m.get("offer_price_inc_vat"),
+                            m.get("rrp_inc_vat"),
+                            m.get("cost_price"),
+                            m.get("notes"),
+                        )
+                    )
+                    existing_keys.add(key)
+            frappe.db.commit()
 
         except Exception as e:
             stats.errors += 1
@@ -474,8 +496,11 @@ def import_users(data_dir: Path, dry_run: bool) -> Stats:
                 for k, v in u.items():
                     if hasattr(doc, k) and v is not None:
                         setattr(doc, k, v)
+                # Never copy role_profile from V2 — assign roles directly
+                doc.role_profile_name = None
                 if not dry_run:
                     doc.flags.ignore_permissions = True
+                    doc.flags.ignore_links = True
                     doc.save()
                 stats.updated += 1
             else:
