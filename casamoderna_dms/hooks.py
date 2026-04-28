@@ -246,10 +246,10 @@ fixtures = [
 		"dt": "Notification",
 		"filters": [["name", "in", ["Material Request Receipt Notification", "Notification for new fiscal year"]]],
 	},
-	{
-		"dt": "Customer Group",
-		"filters": [["name", "in", ["Casa Moderna Internal"]]],
-	},
+	# Customer Group "Casa Moderna Internal" is seeded via master data import.
+	# Removed from fixtures: the ERPNext root "All Customer Groups" is only
+	# created by the setup wizard, so importing this fixture before setup
+	# fails with a NestedSet parent-not-found error.
 	# Property Setter, Client Script, List View Settings, List Filter
 	# fixtures removed 2026-03-10: Frappe Desk UI restored to ERPNext factory default.
 	# The React frontend (ONE-CasaModernaDMS) does not use Frappe Desk at all.
