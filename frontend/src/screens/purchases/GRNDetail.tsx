@@ -3,9 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
 import {
   PageHeader, BackLink, DetailSection, DetailGrid, DetailField,
-  DataTable, ErrorBox, type Column,
+  DataTable, ErrorBox, Btn, type Column,
 } from '../../components/shared/ui'
 import { StatusBadge } from '../../components/shared/StatusBadge'
+import { usePermissions } from '../../auth/PermissionsProvider'
 import { fmtDate, fmtMoney } from '../../utils/fmt'
 
 interface GRNDoc {
@@ -70,6 +71,7 @@ const itemColumns: Column<GRNItem>[] = [
 export function GRNDetail() {
   const { name } = useParams<{ name: string }>()
   const navigate = useNavigate()
+  const { can } = usePermissions()
   const [doc, setDoc] = useState<GRNDoc | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -94,7 +96,16 @@ export function GRNDetail() {
       <PageHeader
         title={doc.name}
         subtitle={doc.supplier_name || doc.supplier}
-        actions={<StatusBadge status={doc.status} docstatus={doc.docstatus} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <StatusBadge status={doc.status} docstatus={doc.docstatus} />
+            {doc.docstatus === 0 && (can('canPurchasing') || can('canWarehouse') || can('canAdmin')) && (
+              <Btn onClick={() => navigate(`/purchases/grn/${encodeURIComponent(doc.name)}/edit`)}>
+                ✏️ Edit
+              </Btn>
+            )}
+          </div>
+        }
       />
 
       <DetailSection title="Details">

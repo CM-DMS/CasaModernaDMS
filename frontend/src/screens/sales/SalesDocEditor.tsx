@@ -16,6 +16,7 @@ import { SalesDocToolbar } from '../../components/sales/SalesDocToolbar'
 import { CustomerSelectorModal } from '../../components/customers/CustomerSelectorModal'
 import { ProductSelectorModal } from '../../components/products/ProductSelectorModal'
 import { FreeTextItemModal } from '../../components/products/FreeTextItemModal'
+import { DeliveryNoteQtyModal } from '../../components/sales/DeliveryNoteQtyModal'
 import { ACTION_IDS, DOC_TYPES, type ActionId } from '../../workflow/documentWorkflow'
 import { CM } from '../../components/ui/CMClassNames'
 import { CMField, CMSection, CMButton, ErrorBanner, Spinner } from '../../components/ui/CMComponents'
@@ -211,6 +212,7 @@ export function SalesDocEditor({
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [cancellingDraft, setCancellingDraft] = useState(false)
+  const [showDnQtyModal, setShowDnQtyModal] = useState(false)
 
   const saveInProgressRef = useRef(false)
 
@@ -701,6 +703,10 @@ export function SalesDocEditor({
         case ACTION_IDS.CONVERT_TO_SO:
           return handleConvert('Sales Order')
         case ACTION_IDS.CONVERT_TO_DN:
+          if (doctype === 'Sales Order' && doc.name) {
+            setShowDnQtyModal(true)
+            return
+          }
           return handleConvert('Delivery Note')
         case ACTION_IDS.CONVERT_TO_SI:
           return handleConvert('Sales Invoice')
@@ -1178,6 +1184,17 @@ export function SalesDocEditor({
             </div>
           </div>
         </div>
+      )}
+
+      {showDnQtyModal && doc.name && (
+        <DeliveryNoteQtyModal
+          soName={doc.name as string}
+          onClose={() => setShowDnQtyModal(false)}
+          onCreated={(dnDoc) => {
+            setShowDnQtyModal(false)
+            navigate(`/sales/delivery-notes/${encodeURIComponent(dnDoc.name)}`)
+          }}
+        />
       )}
     </div>
   )

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
+import { usePermissions } from '../../auth/PermissionsProvider'
+import { CM } from '../../components/ui/CMClassNames'
 
 interface ItemDoc {
   name: string
@@ -27,6 +29,7 @@ interface ItemPrice {
 export function ProductProfile() {
   const { itemCode } = useParams<{ itemCode: string }>()
   const navigate = useNavigate()
+  const { can } = usePermissions()
   const [item, setItem] = useState<ItemDoc | null>(null)
   const [prices, setPrices] = useState<ItemPrice[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,7 +71,17 @@ export function ProductProfile() {
         ← Products
       </button>
 
-      <h1 className="text-xl font-semibold text-gray-900 mb-1">{item.item_name}</h1>
+      <div className="flex items-start justify-between gap-4 mb-1">
+        <h1 className="text-xl font-semibold text-gray-900">{item.item_name}</h1>
+        {(can('canEditProduct') || can('canAdmin')) && (
+          <button
+            className={CM.btn.secondary}
+            onClick={() => navigate(`/products/${encodeURIComponent(item.name)}/edit`)}
+          >
+            Edit
+          </button>
+        )}
+      </div>
       <p className="text-xs text-gray-400 font-mono mb-6">{item.name}</p>
 
       <div className="grid grid-cols-2 gap-4 mb-6 text-sm">

@@ -9,6 +9,7 @@ import { StatusBadge } from '../../components/shared/StatusBadge'
 import { DocActions } from '../../components/shared/DocActions'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { fmtDate, fmtDeliveryMonth, fmtMoney, fmtDiscount } from '../../utils/fmt'
+import { CM } from '../../components/ui/CMClassNames'
 
 interface SalesOrderDoc {
   name: string
@@ -100,6 +101,14 @@ export function SalesOrderDetail() {
           <div className="flex items-center gap-3 flex-wrap">
             {doc.workflow_state && <StatusBadge status={doc.workflow_state} />}
             <StatusBadge status={doc.status} docstatus={doc.docstatus} />
+            {doc.docstatus === 0 && can('canSales') && (
+              <button
+                className={CM.btn.secondary}
+                onClick={() => navigate(`/sales/orders/${encodeURIComponent(doc.name)}/edit`)}
+              >
+                Edit
+              </button>
+            )}
             <DocActions
               doctype="Sales Order"
               name={doc.name}

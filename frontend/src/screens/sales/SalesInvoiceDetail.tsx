@@ -9,6 +9,7 @@ import { StatusBadge } from '../../components/shared/StatusBadge'
 import { DocActions } from '../../components/shared/DocActions'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { fmtDate, fmtMoney, fmtDiscount } from '../../utils/fmt'
+import { CM } from '../../components/ui/CMClassNames'
 
 interface SalesInvoiceDoc {
   name: string
@@ -101,6 +102,14 @@ export function SalesInvoiceDetail() {
         actions={
           <div className="flex items-center gap-3 flex-wrap">
             <StatusBadge status={doc.status} docstatus={doc.docstatus} />
+            {doc.docstatus === 0 && (can('canFinance') || can('canSales')) && (
+              <button
+                className={CM.btn.secondary}
+                onClick={() => navigate(`/sales/invoices/${encodeURIComponent(doc.name)}/edit`)}
+              >
+                Edit
+              </button>
+            )}
             <DocActions
               doctype="Sales Invoice"
               name={doc.name}
@@ -109,6 +118,24 @@ export function SalesInvoiceDetail() {
               canCancel={can('canAdmin')}
               onComplete={load}
             />
+            {doc.docstatus === 1 && outstanding > 0 && (can('canFinance') || can('canSales')) && (
+              <button
+                className={CM.btn.primary}
+                onClick={() =>
+                  navigate('/sales/receipts/new', {
+                    state: {
+                      party: doc.customer,
+                      party_name: doc.customer_name,
+                      paid_amount: String(outstanding.toFixed(2)),
+                      reference_invoice: doc.name,
+                      payment_purpose: 'Invoice Settlement',
+                    },
+                  })
+                }
+              >
+                Receive Payment
+              </button>
+            )}
           </div>
         }
       />

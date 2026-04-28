@@ -6,6 +6,8 @@ import {
   inputCls, type Column,
 } from '../../components/shared/ui'
 import { StatusBadge } from '../../components/shared/StatusBadge'
+import { CM } from '../../components/ui/CMClassNames'
+import { usePermissions } from '../../auth/PermissionsProvider'
 import { fmtDate, fmtMoney } from '../../utils/fmt'
 
 interface PaymentEntry {
@@ -52,6 +54,7 @@ const COLUMNS: Column<PaymentEntry>[] = [
 
 export function PaymentEntryList() {
   const navigate = useNavigate()
+  const { can } = usePermissions()
 
   const [partyName, setPartyName] = useState('')
   const [fromDate, setFromDate] = useState('')
@@ -91,7 +94,15 @@ export function PaymentEntryList() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Receipts" subtitle={`${rows.length} results`} />
+      <PageHeader
+        title="Receipts"
+        subtitle={`${rows.length} results`}
+        actions={
+          can('canSales') || can('canFinance')
+            ? <button className={CM.btn.primary} onClick={() => navigate('/sales/receipts/new')}>+ New Receipt</button>
+            : undefined
+        }
+      />
 
       <FilterRow>
         <FieldWrap label="Customer">

@@ -9,6 +9,7 @@ import { StatusBadge } from '../../components/shared/StatusBadge'
 import { DocActions } from '../../components/shared/DocActions'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { fmtDate, fmtMoney, fmtDiscount } from '../../utils/fmt'
+import { CM } from '../../components/ui/CMClassNames'
 
 interface QuotationDoc {
   name: string
@@ -96,6 +97,14 @@ export function QuotationDetail() {
         actions={
           <div className="flex items-center gap-3 flex-wrap">
             <StatusBadge status={doc.status} docstatus={doc.docstatus} />
+            {doc.docstatus === 0 && can('canSales') && (
+              <button
+                className={CM.btn.secondary}
+                onClick={() => navigate(`/sales/quotations/${encodeURIComponent(doc.name)}/edit`)}
+              >
+                Edit
+              </button>
+            )}
             <DocActions
               doctype="Quotation"
               name={doc.name}

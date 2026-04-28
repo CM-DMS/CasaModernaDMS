@@ -7,6 +7,8 @@ import {
 } from '../../components/shared/ui'
 import { StatusBadge } from '../../components/shared/StatusBadge'
 import { fmtDate, fmtMoney } from '../../utils/fmt'
+import { CM } from '../../components/ui/CMClassNames'
+import { usePermissions } from '../../auth/PermissionsProvider'
 
 interface CustomerDoc {
   name: string
@@ -19,7 +21,7 @@ interface CustomerDoc {
   cm_mobile?: string
   cm_phone?: string
   cm_email?: string
-  cm_id_card?: string
+  cm_id_card_no?: string
   cm_locality?: string
   website?: string
   default_currency?: string
@@ -73,6 +75,7 @@ const siColumns: Column<SalesDoc>[] = [
 export function CustomerProfile() {
   const { name } = useParams<{ name: string }>()
   const navigate = useNavigate()
+  const { can } = usePermissions()
 
   const [doc, setDoc] = useState<CustomerDoc | null>(null)
   const [salesOrders, setSalesOrders] = useState<SalesDoc[]>([])
@@ -121,7 +124,17 @@ export function CustomerProfile() {
         title={doc.customer_name}
         subtitle={doc.name}
         actions={
-          <StatusBadge status={doc.disabled ? 'Inactive' : 'Active'} docstatus={undefined} />
+          <div className="flex items-center gap-3">
+            <StatusBadge status={doc.disabled ? 'Inactive' : 'Active'} docstatus={undefined} />
+            {(can('canSales') || can('canAdmin')) && (
+              <button
+                className={CM.btn.secondary}
+                onClick={() => navigate(`/customers/${encodeURIComponent(doc.name)}/edit`)}
+              >
+                Edit
+              </button>
+            )}
+          </div>
         }
       />
 
@@ -132,7 +145,7 @@ export function CustomerProfile() {
           <DetailField label="Customer Group" value={doc.customer_group} />
           <DetailField label="Territory" value={doc.territory} />
           <DetailField label="VAT No." value={doc.cm_vat_no} />
-          <DetailField label="ID Card" value={doc.cm_id_card} />
+          <DetailField label="ID Card" value={doc.cm_id_card_no} />
           <DetailField label="Locality" value={doc.cm_locality} />
           <DetailField label="Price List" value={doc.default_price_list} />
           <DetailField label="Payment Terms" value={doc.payment_terms} />

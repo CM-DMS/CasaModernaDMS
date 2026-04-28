@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
+import { usePermissions } from '../../auth/PermissionsProvider'
 import {
   PageHeader, FilterRow, FieldWrap, DataTable, ErrorBox, Btn,
   inputCls, selectCls, type Column,
@@ -59,6 +60,7 @@ const STATUS_OPTIONS = ['', 'Draft', 'Submitted', 'Return', 'Credit Note Issued'
 
 export function SalesInvoiceList() {
   const navigate = useNavigate()
+  const { can } = usePermissions()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const q = searchParams.get('q') ?? ''
@@ -105,7 +107,20 @@ export function SalesInvoiceList() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Sales Invoices" subtitle={`${rows.length} results`} />
+      <PageHeader
+        title="Sales Invoices"
+        subtitle={`${rows.length} results`}
+        actions={
+          (can('canSales') || can('canAdmin')) ? (
+            <button
+              onClick={() => navigate('/sales/invoices/new')}
+              className="px-4 py-1.5 rounded text-sm font-semibold bg-cm-green text-white hover:bg-cm-green/90 transition-colors"
+            >
+              + New Invoice
+            </button>
+          ) : undefined
+        }
+      />
 
       <FilterRow>
         <FieldWrap label="Search">

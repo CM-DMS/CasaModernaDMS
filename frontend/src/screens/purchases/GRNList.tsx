@@ -6,6 +6,7 @@ import {
   inputCls, selectCls, type Column,
 } from '../../components/shared/ui'
 import { StatusBadge } from '../../components/shared/StatusBadge'
+import { usePermissions } from '../../auth/PermissionsProvider'
 import { fmtDate } from '../../utils/fmt'
 
 interface PurchaseReceipt {
@@ -50,6 +51,7 @@ const STATUS_OPTIONS = ['', 'Draft', 'To Bill', 'Completed', 'Cancelled', 'Retur
 
 export function GRNList() {
   const navigate = useNavigate()
+  const { can } = usePermissions()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const q = searchParams.get('q') ?? ''
@@ -108,6 +110,11 @@ export function GRNList() {
       <PageHeader
         title={po ? `GRNs for ${po}` : 'Purchase Receipts (GRN)'}
         subtitle={`${rows.length} results`}
+        actions={
+          (can('canPurchasing') || can('canWarehouse') || can('canAdmin')) ? (
+            <Btn onClick={() => navigate('/purchases/grn/new')}>+ New GRN</Btn>
+          ) : undefined
+        }
       />
 
       <FilterRow>

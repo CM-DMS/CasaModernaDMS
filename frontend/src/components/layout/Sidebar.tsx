@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
+import { usePermissions } from '../../auth/PermissionsProvider'
 import type { ReactNode } from 'react'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -31,11 +32,12 @@ function NavItem({ to, icon, label }: { to: string; icon: string; label: string 
 
 export function Sidebar() {
   const { user } = useAuth()
+  const { can } = usePermissions()
 
   const displayName = user?.full_name ?? user?.name ?? '—'
   const initials = displayName
     .split(' ')
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
@@ -58,34 +60,169 @@ export function Sidebar() {
           <NavItem to="/dashboard" icon="📊" label="Dashboard" />
         </NavGroup>
 
-        <NavGroup heading="Sales">
-          <NavItem to="/customers" icon="👥" label="Customers" />
-          <NavItem to="/sales/quotations" icon="📋" label="Quotations" />
-          <NavItem to="/sales/orders" icon="📦" label="Sales Orders" />
-          <NavItem to="/sales/invoices" icon="🧾" label="Invoices" />
-          <NavItem to="/sales/receipts" icon="💳" label="Receipts" />
-          <NavItem to="/sales/delivery-notes" icon="🚚" label="Delivery Notes" />
+        {(can('canSales') || can('canAdmin')) && (
+          <NavGroup heading="Sales &amp; CRM">
+            <NavItem to="/customers"           icon="👥" label="Customers" />
+            <NavItem to="/sales/quotations"    icon="💬" label="Quotations" />
+            <NavItem to="/sales/proformas"     icon="📋" label="Proformas" />
+            <NavItem to="/sales/orders"        icon="🛒" label="Sales Orders" />
+            <NavItem to="/sales/invoices"      icon="🧾" label="Invoices" />
+            <NavItem to="/sales/cash-sales"    icon="💵" label="Cash Sales" />
+            <NavItem to="/sales/credit-notes"  icon="↩️" label="Credit Notes" />
+            <NavItem to="/sales/receipts"      icon="💰" label="Receipts" />
+            {can('canConfirmSO') && (
+              <NavItem to="/sales/queue"       icon="⏳" label="Pending Confirmation" />
+            )}
+            <NavItem to="/sales/search"      icon="🔍" label="Sales Search" />
+          </NavGroup>
+        )}
+
+        <NavGroup heading="Products">
+          <NavItem to="/products" icon="🏷️" label="Product Catalogue" />
         </NavGroup>
 
-        <NavGroup heading="Purchases">
-          <NavItem to="/purchases/orders" icon="🛒" label="Purchase Orders" />
-          <NavItem to="/purchases/grn" icon="📥" label="Purchase Receipts" />
+        {(can('canSales') || can('canAdmin') || can('canVouchers') || can('canAuthorizeVouchers')) && (
+          <NavGroup heading="Customers">
+            {(can('canSales') || can('canAdmin')) && (
+              <NavItem to="/customers/registrations" icon="📝" label="Registrations" />
+            )}
+            {(can('canVouchers') || can('canAdmin')) && (
+              <NavItem to="/customers/vouchers" icon="🎁" label="Gift Vouchers" />
+            )}
+            {can('canAuthorizeVouchers') && (
+              <NavItem to="/customers/vouchers/approvals" icon="✅" label="Voucher Approvals" />
+            )}
+            {(can('canVouchers') || can('canAdmin')) && (
+              <NavItem to="/vouchers/redeem" icon="💳" label="Redeem Voucher" />
+            )}
+            {(can('canSales') || can('canAdmin')) && (
+              <NavItem to="/customers/reports" icon="📋" label="Customer Reports" />
+            )}
+          </NavGroup>
+        )}
+
+        {(can('canPurchasing') || can('canAdmin')) && (
+          <NavGroup heading="Purchasing">
+            <NavItem to="/suppliers"                          icon="🏭" label="Suppliers" />
+            <NavItem to="/purchases/orders"                   icon="📑" label="Purchase Orders" />
+            <NavItem to="/purchases/grn"                      icon="📥" label="GRN" />
+            <NavItem to="/sales/queue"                        icon="✅" label="Fulfilment Review" />
+            <NavItem to="/purchasing/items-to-order"          icon="🛒" label="Purchase Planner" />
+            <NavItem to="/purchases/reorder-suggestions"      icon="🔄" label="Reorder Suggestions" />
+            <NavItem to="/purchases/cfg-tracker"              icon="🎛️" label="CFG Order Tracker" />
+            <NavItem to="/purchases/freetext-reviews"         icon="📝" label="Free Text Reviews" />
+            <NavItem to="/purchases/supplier-performance"     icon="📊" label="Supplier Performance" />
+            <NavItem to="/configurator"                       icon="⚙️" label="Configurator Pricing" />
+          </NavGroup>
+        )}
+
+        {(can('canWarehouse') || can('canSales') || can('canAdmin')) && (
+          <NavGroup heading="Warehouse">
+            <NavItem to="/sales/delivery-notes"        icon="📦" label="Delivery Notes" />
+            {(can('canWarehouse') || can('canAdmin')) && (
+              <>
+                <NavItem to="/warehouse/delivery-prep"   icon="🚚" label="Delivery Prep" />
+                <NavItem to="/warehouse/picking"         icon="📌" label="Stock Pull" />
+                <NavItem to="/warehouse/pickup"          icon="📋" label="Pick List" />
+              </>
+            )}
+            {(can('canStockAdmin') || can('canAdmin')) && (
+              <>
+                <NavItem to="/warehouse/stock-balances"  icon="📊" label="Stock Balances" />
+                <NavItem to="/warehouse/stock-ledger"    icon="📒" label="Stock Ledger" />
+                <NavItem to="/warehouse/adjustments"     icon="⚖️" label="Adjustments" />
+                <NavItem to="/warehouse/transfers"       icon="🔄" label="Transfers" />
+              </>
+            )}
+          </NavGroup>
+        )}
+
+        {(can('canService') || can('canAdmin')) && (
+          <NavGroup heading="Service">
+            <NavItem to="/service/job-cards"  icon="🔧" label="Job Cards" />
+            <NavItem to="/service/warranties" icon="🛡️" label="Warranties" />
+            <NavItem to="/service/providers"  icon="👷" label="Service Providers" />
+          </NavGroup>
+        )}
+
+        {(can('canSales') || can('canAdmin')) && (
+          <NavGroup heading="Projects">
+            <NavItem to="/projects" icon="📐" label="Projects" />
+          </NavGroup>
+        )}
+
+        {(can('canOperations') || can('canAdmin')) && (
+          <NavGroup heading="Operations">
+            <NavItem to="/operations/calendar"     icon="📅" label="Calendar" />
+            <NavItem to="/operations/appointments" icon="🍳" label="Appointments" />
+            <NavItem to="/operations/leave"        icon="🌴" label="Leave Requests" />
+            {can('canAdmin') && <NavItem to="/operations/sms-log" icon="📱" label="SMS Log" />}
+          </NavGroup>
+        )}
+
+        {can('canAdmin') && (
+          <NavGroup heading="Admin">
+            <NavItem to="/admin/users"               icon="👥" label="Users &amp; Roles" />
+            <NavItem to="/admin/audit-log"           icon="📋" label="Audit Log" />
+            <NavItem to="/admin/permissions"         icon="🔐" label="Permissions" />
+            <NavItem to="/admin/price-lists"         icon="💰" label="Price Lists" />
+            <NavItem to="/admin/pricing-calculators" icon="🧮" label="Pricing Calculators" />
+            <NavItem to="/admin/backup-restore"      icon="💾" label="Backup &amp; Restore" />
+            <NavItem to="/admin/data-reset"          icon="⚠️" label="Data Reset" />
+          </NavGroup>
+        )}
+
+        <NavGroup heading="Tools">
+          <NavItem to="/tools/tiles-calculator" icon="📐" label="Tiles Calculator" />
         </NavGroup>
 
-        <NavGroup heading="Warehouse">
-          <NavItem to="/warehouse/stock-balances" icon="📊" label="Stock Balances" />
-          <NavItem to="/warehouse/stock-ledger" icon="📒" label="Stock Ledger" />
-        </NavGroup>
+        {can('canPriceSupervisor') && (
+          <NavGroup heading="Management">
+            <NavItem to="/supervisor/price-overrides" icon="💲" label="Price Overrides" />
+          </NavGroup>
+        )}
 
-        <NavGroup heading="Finance">
-          <NavItem to="/finance/aged" icon="📅" label="Aged AR / AP" />
-        </NavGroup>
+        {(can('canFinance') || can('canFinanceAccounting') || can('canFinanceReports') || can('canAdmin')) && (
+          <NavGroup heading="Finance">
+            <NavItem to="/finance/aged"  icon="📋" label="Aged Debtors / Creditors" />
+            <NavItem to="/finance/bills" icon="🗂️" label="Bills" />
+            {(can('canFinance') || can('canFinanceAccounting') || can('canAdmin')) && (
+              <NavItem to="/finance/ap-due" icon="⏰" label="AP Due" />
+            )}
+            {(can('canFinance') || can('canAdmin')) && (
+              <NavItem to="/finance/collections" icon="💰" label="Daily Collections" />
+            )}
+            {(can('canFinance') || can('canAdmin')) && (
+              <NavItem to="/finance/handover" icon="🤝" label="Cash Handover" />
+            )}
+            {(can('canFinanceAccounting') || can('canAdmin')) && (
+              <NavItem to="/finance/journals" icon="📓" label="Journal Entries" />
+            )}
+            {(can('canFinanceAccounting') || can('canAdmin')) && (
+              <NavItem to="/finance/bank-reconciliation" icon="🏦" label="Bank Reconciliation" />
+            )}
+            {(can('canFinanceReports') || can('canAdmin')) && (
+              <NavItem to="/finance/reports" icon="📈" label="Financial Reports" />
+            )}
+            {(can('canFinanceAccounting') || can('canAdmin')) && (
+              <NavItem to="/finance/vat-return" icon="🧾" label="VAT Return" />
+            )}
+          </NavGroup>
+        )}
 
-        <NavGroup heading="Catalogue">
-          <NavItem to="/products" icon="🪑" label="Products" />
-          <NavItem to="/suppliers" icon="🏭" label="Suppliers" />
-          <NavItem to="/configurator" icon="⚙️" label="Configurator Pricing" />
-        </NavGroup>
+        {can('canAdmin') && (
+          <NavGroup heading="System">
+            <a
+              href="/app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded text-[13px] transition-colors mb-0.5 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              <span className="text-base leading-none w-5 text-center">⚙️</span>
+              <span className="truncate">System Desk</span>
+            </a>
+          </NavGroup>
+        )}
       </nav>
 
       {/* User footer */}

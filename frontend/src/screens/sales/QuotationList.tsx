@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
+import { usePermissions } from '../../auth/PermissionsProvider'
 import {
   PageHeader, FilterRow, FieldWrap, DataTable, ErrorBox, Btn,
   inputCls, selectCls, type Column,
@@ -59,8 +60,16 @@ const COLUMNS: Column<Quotation>[] = [
 
 const STATUS_OPTIONS = ['', 'Draft', 'Open', 'Ordered', 'Lost', 'Cancelled', 'Expired']
 
-export function QuotationList() {
+interface QuotationListProps {
+  /** If set, only show quotations where cm_document_subtype = subtypeFilter */
+  subtypeFilter?: string
+  /** Override the page title */
+  title?: string
+}
+
+export function QuotationList({ subtypeFilter, title }: QuotationListProps = {}) {
   const navigate = useNavigate()
+  const { can } = usePermissions()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const q = searchParams.get('q') ?? ''
@@ -81,6 +90,7 @@ export function QuotationList() {
       if (status) filters.push(['status', '=', status, ''])
       if (fromDate) filters.push(['transaction_date', '>=', fromDate, ''])
       if (toDate) filters.push(['transaction_date', '<=', toDate, ''])
+      if (subtypeFilter) filters.push(['cm_document_subtype', '=', subtypeFilter, ''])
 
       const data = await frappe.getList<Quotation>('Quotation', {
         fields: ['name', 'customer_name', 'party_name', 'title', 'transaction_date', 'valid_till', 'grand_total', 'status', 'docstatus', 'cm_sales_person'],
@@ -107,7 +117,20 @@ export function QuotationList() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Quotations" subtitle={`${rows.length} results`} />
+      <PageHeader
+        title={title ?? 'Quotations'}
+        subtitle={`${rows.length} results`}
+        actions={
+          (can('canSales') || can('canAdmin')) ? (
+            <button
+              onClick={() => navigate('/sales/quotations/new')}
+              className="px-4 py-1.5 rounded text-sm font-semibold bg-cm-green text-white hover:bg-cm-green/90 transition-colors"
+            >
+              + New {title ?? 'Quotation'}
+            </button>
+          ) : undefined
+        }
+      />
 
       <FilterRow>
         <FieldWrap label="Search">

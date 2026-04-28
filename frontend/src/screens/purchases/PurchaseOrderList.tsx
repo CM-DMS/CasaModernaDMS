@@ -7,6 +7,7 @@ import {
 } from '../../components/shared/ui'
 import { StatusBadge } from '../../components/shared/StatusBadge'
 import { fmtDate, fmtMoney } from '../../utils/fmt'
+import { usePermissions } from '../../auth/PermissionsProvider'
 
 interface PurchaseOrder {
   name: string
@@ -84,6 +85,7 @@ const STATUS_OPTIONS = ['', 'Draft', 'To Receive and Bill', 'To Bill', 'To Recei
 
 export function PurchaseOrderList() {
   const navigate = useNavigate()
+  const { can } = usePermissions()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const q = searchParams.get('q') ?? ''
@@ -133,7 +135,20 @@ export function PurchaseOrderList() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Purchase Orders" subtitle={`${rows.length} results`} />
+      <PageHeader
+        title="Purchase Orders"
+        subtitle={`${rows.length} results`}
+        actions={
+          can('canPurchasing') || can('canAdmin') ? (
+            <button
+              onClick={() => navigate('/purchases/orders/new')}
+              className="px-4 py-1.5 rounded text-sm font-semibold bg-cm-green text-white hover:bg-cm-green/90 transition-colors"
+            >
+              + New PO
+            </button>
+          ) : undefined
+        }
+      />
 
       <FilterRow>
         <FieldWrap label="PO / Reference">

@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
+import { usePermissions } from '../../auth/PermissionsProvider'
+import { CM } from '../../components/ui/CMClassNames'
 
 interface Item {
   name: string
@@ -15,6 +17,7 @@ const PAGE_SIZE = 48
 
 export function ProductList() {
   const navigate = useNavigate()
+  const { can } = usePermissions()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [items, setItems] = useState<Item[]>([])
@@ -65,7 +68,17 @@ export function ProductList() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold text-gray-900">Products</h1>
-        <span className="text-sm text-gray-400">{total.toLocaleString()} items</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-400">{total.toLocaleString()} items</span>
+          {(can('canEditProduct') || can('canAdmin')) && (
+            <button
+              className={CM.btn.primary}
+              onClick={() => navigate('/products/new')}
+            >
+              + New Product
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search */}

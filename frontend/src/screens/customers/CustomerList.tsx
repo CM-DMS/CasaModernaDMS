@@ -7,6 +7,8 @@ import {
   type Column,
 } from '../../components/shared/ui'
 import { StatusBadge } from '../../components/shared/StatusBadge'
+import { CM } from '../../components/ui/CMClassNames'
+import { usePermissions } from '../../auth/PermissionsProvider'
 
 interface Customer {
   name: string
@@ -39,6 +41,7 @@ const COLUMNS: Column<Customer>[] = [
 export function CustomerList() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { can } = usePermissions()
 
   const q = searchParams.get('q') ?? ''
   const typeFilter = searchParams.get('type') ?? ''
@@ -82,7 +85,15 @@ export function CustomerList() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Customers" subtitle={`${rows.length} results`} />
+      <PageHeader
+        title="Customers"
+        subtitle={`${rows.length} results`}
+        actions={
+          can('canSales') || can('canAdmin')
+            ? <button className={CM.btn.primary} onClick={() => navigate('/customers/new')}>+ New Customer</button>
+            : undefined
+        }
+      />
 
       <FilterRow>
         <FieldWrap label="Search">

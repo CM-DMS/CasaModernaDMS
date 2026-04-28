@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
+import { usePermissions } from '../../auth/PermissionsProvider'
 
 interface Supplier {
   name: string
@@ -11,6 +12,7 @@ interface Supplier {
 
 export function SupplierList() {
   const navigate = useNavigate()
+  const { can } = usePermissions()
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -30,8 +32,18 @@ export function SupplierList() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold text-gray-900">Suppliers</h1>
-        <span className="text-sm text-gray-400">{suppliers.length} suppliers</span>
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Suppliers</h1>
+          <span className="text-sm text-gray-400">{suppliers.length} suppliers</span>
+        </div>
+        {(can('canPurchasing') || can('canAdmin')) && (
+          <button
+            onClick={() => navigate('/suppliers/new')}
+            className="px-4 py-1.5 rounded text-sm font-semibold bg-cm-green text-white hover:bg-cm-green/90 transition-colors"
+          >
+            + New Supplier
+          </button>
+        )}
       </div>
 
       {loading && <p className="text-sm text-gray-400 animate-pulse">Loading…</p>}

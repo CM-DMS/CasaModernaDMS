@@ -126,6 +126,14 @@ export function PurchaseOrderDetail() {
           <div className="flex items-center gap-3 flex-wrap">
             <StageBadge stage={doc.cm_po_stage} />
             <StatusBadge status={doc.status} docstatus={doc.docstatus} />
+            {doc.docstatus === 0 && (can('canPurchasing') || can('canAdmin')) && (
+              <button
+                onClick={() => navigate(`/purchases/orders/${encodeURIComponent(doc.name)}/edit`)}
+                className="px-3 py-1.5 rounded text-xs font-semibold border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Edit
+              </button>
+            )}
             <DocActions
               doctype="Purchase Order"
               name={doc.name}
