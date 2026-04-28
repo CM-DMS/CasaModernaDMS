@@ -608,7 +608,7 @@ export function ProductList() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-start">
         {/* Search */}
-        <div className="relative flex-1 min-w-[220px]">
+        <div className="relative flex-1 min-w-[200px]">
           <input
             ref={searchInputRef}
             type="search"
@@ -634,6 +634,9 @@ export function ProductList() {
             </div>
           )}
         </div>
+
+        {/* Barcode */}
+        <input type="text" placeholder="Barcode / EAN" value={barcode} onChange={(e) => setBarcode(e.target.value)} className={CM.input + ' w-36'} />
 
         {/* Groups multi-filter */}
         <div className="relative">
@@ -682,9 +685,6 @@ export function ProductList() {
           <span className="text-gray-400 text-sm">–</span>
           <input type="number" placeholder="Max €" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} min="0" step="1" className={CM.input + ' w-20'} />
         </div>
-
-        {/* Barcode */}
-        <input type="text" placeholder="Barcode" value={barcode} onChange={(e) => setBarcode(e.target.value)} className={CM.input + ' w-32'} />
 
         {/* Sort */}
         <select value={sort} onChange={(e) => setSort(e.target.value)} className={CM.select + ' max-w-[180px]'}>
