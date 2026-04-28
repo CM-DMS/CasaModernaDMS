@@ -84,6 +84,8 @@ def upsert_doc(doctype: str, data: dict, key_field: str = "name", dry_run: bool 
         if doc.docstatus == 1:
             return "skipped"  # submitted — cannot update
         for k, v in clean.items():
+            if k == "name":
+                continue  # never setattr name — triggers spurious rename attempt
             if hasattr(doc, k):
                 setattr(doc, k, v)
         if not dry_run:
@@ -207,8 +209,15 @@ def import_localities(data_dir: Path, dry_run: bool) -> Stats:
 def import_suppliers(data_dir: Path, dry_run: bool) -> Stats:
     records = load(data_dir, "suppliers.json")
     stats = Stats()
+    # V2 supplier names that differ from V3 (name was set from supplier_name on creation)
+    SUPPLIER_NAME_MAP = {
+        "Topline Mobili": "Topline Mobili Srl",
+    }
     for r in records:
         try:
+            # Remap name if V2 name differs from V3 name
+            v2_name = r["name"]
+            r["name"] = SUPPLIER_NAME_MAP.get(v2_name, v2_name)
             # Import supplier
             supplier_data = {k: v for k, v in r.items() if k not in ("addresses", "contacts")}
             result = upsert_doc("Supplier", supplier_data, dry_run=dry_run)
@@ -412,6 +421,8 @@ def import_configurator_pricing(data_dir: Path, dry_run: bool) -> Stats:
                 continue
 
             # Insert matrix rows (skip if already present)
+            # Reload to get the latest modified timestamp before saving
+            # (avoids TimestampMismatchError if doc was touched between load and save)
             config_doc = frappe.get_doc("CM Configurator Pricing", r["name"])
             existing_rows = config_doc.get("matrix") or []
             existing = {(m.get("tier_name"), m.get("option_code")) for m in existing_rows}
@@ -434,7 +445,9 @@ def import_configurator_pricing(data_dir: Path, dry_run: bool) -> Stats:
                         "notes": m.get("notes"),
                     })
             config_doc.flags.ignore_permissions = True
-            config_doc.save()
+            config_doc.flags.ignore_validate = True
+            config_doc.flags.ignore_links = True
+            config_doc.save(ignore_version=True)
 
         except Exception as e:
             stats.errors += 1
@@ -452,6 +465,9 @@ def import_users(data_dir: Path, dry_run: bool) -> Stats:
 
     for u in users:
         roles = u.pop("roles", [])
+        # Strip system-managed fields to avoid timestamp conflicts
+        for f in _SYSTEM_FIELDS:
+            u.pop(f, None)
         try:
             if frappe.db.exists("User", u["name"]):
                 doc = frappe.get_doc("User", u["name"])
