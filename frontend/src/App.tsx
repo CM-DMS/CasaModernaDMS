@@ -20,6 +20,14 @@ import { SalesInvoiceList } from './screens/sales/SalesInvoiceList'
 import { SalesInvoiceDetail } from './screens/sales/SalesInvoiceDetail'
 import { DeliveryNoteList } from './screens/sales/DeliveryNoteList'
 import { DeliveryNoteDetail } from './screens/sales/DeliveryNoteDetail'
+import { PurchaseOrderList } from './screens/purchases/PurchaseOrderList'
+import { PurchaseOrderDetail } from './screens/purchases/PurchaseOrderDetail'
+import { GRNList } from './screens/purchases/GRNList'
+import { GRNDetail } from './screens/purchases/GRNDetail'
+import { StockBalances } from './screens/warehouse/StockBalances'
+import { StockLedger } from './screens/warehouse/StockLedger'
+import { AgedReceivables } from './screens/finance/AgedReceivables'
+import { PaymentEntryList } from './screens/finance/PaymentEntryList'
 
 export default function App() {
   return (
@@ -53,6 +61,20 @@ export default function App() {
               <Route path="/suppliers/:name" element={<SupplierProfile />} />
               <Route path="/configurator" element={<ConfiguratorPricingList />} />
               <Route path="/configurator/:name" element={<ConfiguratorPricingDetail />} />
+
+              {/* Purchases */}
+              <Route path="/purchases/orders" element={<PurchaseOrderList />} />
+              <Route path="/purchases/orders/:name" element={<PurchaseOrderDetail />} />
+              <Route path="/purchases/grn" element={<GRNList />} />
+              <Route path="/purchases/grn/:name" element={<GRNDetail />} />
+
+              {/* Warehouse */}
+              <Route path="/warehouse/stock-balances" element={<StockBalances />} />
+              <Route path="/warehouse/stock-ledger" element={<StockLedger />} />
+
+              {/* Finance */}
+              <Route path="/finance/aged" element={<AgedReceivables />} />
+              <Route path="/sales/receipts" element={<PaymentEntryList />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

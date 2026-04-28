@@ -63,7 +63,22 @@ export function Sidebar() {
           <NavItem to="/sales/quotations" icon="📋" label="Quotations" />
           <NavItem to="/sales/orders" icon="📦" label="Sales Orders" />
           <NavItem to="/sales/invoices" icon="🧾" label="Invoices" />
+          <NavItem to="/sales/receipts" icon="💳" label="Receipts" />
           <NavItem to="/sales/delivery-notes" icon="🚚" label="Delivery Notes" />
+        </NavGroup>
+
+        <NavGroup heading="Purchases">
+          <NavItem to="/purchases/orders" icon="🛒" label="Purchase Orders" />
+          <NavItem to="/purchases/grn" icon="📥" label="Purchase Receipts" />
+        </NavGroup>
+
+        <NavGroup heading="Warehouse">
+          <NavItem to="/warehouse/stock-balances" icon="📊" label="Stock Balances" />
+          <NavItem to="/warehouse/stock-ledger" icon="📒" label="Stock Ledger" />
+        </NavGroup>
+
+        <NavGroup heading="Finance">
+          <NavItem to="/finance/aged" icon="📅" label="Aged AR / AP" />
         </NavGroup>
 
         <NavGroup heading="Catalogue">
