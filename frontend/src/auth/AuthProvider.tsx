@@ -113,7 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   const login = async (usr: string, pwd: string): Promise<void> => {
-    await frappe.call('login', { usr, pwd })
+    // Use v1 login endpoint — /api/v2/method/login is not supported by Frappe
+    await frappe.post('/api/method/login', { usr, pwd })
     const userId = readCookie('user_id')
     if (userId && userId !== 'Guest') {
       await hydrateUser(userId)
