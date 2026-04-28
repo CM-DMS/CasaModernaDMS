@@ -427,9 +427,10 @@ def import_configurator_pricing(data_dir: Path, dry_run: bool) -> Stats:
                 continue
 
             # Use direct DB insert for matrix rows to bypass doc hooks entirely
+            # Unique key = mode|finish_code|seat_count (tier_name and option_code are non-unique)
             existing_keys = set(
                 frappe.db.sql(
-                    """SELECT CONCAT(IFNULL(tier_name,''), '|', IFNULL(option_code,''))
+                    """SELECT CONCAT(IFNULL(mode,''), '|', IFNULL(finish_code,''), '|', IFNULL(seat_count,''))
                        FROM `tabCM Configurator Pricing Matrix`
                        WHERE parent=%s""",
                     r["name"], as_list=True
@@ -437,7 +438,7 @@ def import_configurator_pricing(data_dir: Path, dry_run: bool) -> Stats:
             )
             existing_keys = {row[0] for row in existing_keys}
             for m in matrix:
-                key = f"{m.get('tier_name') or ''}|{m.get('option_code') or ''}"
+                key = f"{m.get('mode') or ''}|{m.get('finish_code') or ''}|{m.get('seat_count') or 0}"
                 if key not in existing_keys:
                     frappe.db.sql(
                         """INSERT INTO `tabCM Configurator Pricing Matrix`
