@@ -353,7 +353,6 @@ export function PriceCalculatorAdmin() {
             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
               <p className="text-base font-medium">Select a calculator</p>
               <p className="text-sm mt-1">or create a new one</p>
-              <button type="button" onClick={handleNew} className={`mt-4 ${CM.btn.primary}`}>+ New Calculator</button>
             </div>
           )}
         </div>
