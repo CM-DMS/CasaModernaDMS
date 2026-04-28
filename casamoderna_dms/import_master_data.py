@@ -110,10 +110,12 @@ def import_item_groups(data_dir: Path, dry_run: bool) -> Stats:
     records.sort(key=lambda r: r.get("lft", 0))
     for r in records:
         try:
+            # V2 top-level groups have NULL parent — default to "All Item Groups"
+            parent = r.get("parent_item_group") or "All Item Groups"
             result = upsert_doc("Item Group", {
                 "name": r["name"],
                 "item_group_name": r.get("item_group_name", r["name"]),
-                "parent_item_group": r.get("parent_item_group") or "",
+                "parent_item_group": parent,
                 "is_group": r.get("is_group", 0),
             }, dry_run=dry_run)
             if result == "created":
@@ -151,15 +153,19 @@ def import_territories(data_dir: Path, dry_run: bool) -> Stats:
 def import_warehouses(data_dir: Path, dry_run: bool) -> Stats:
     records = load(data_dir, "warehouses.json")
     stats = Stats()
+    # Map V2 company name to V3 company name
+    COMPANY_MAP = {"Casa Moderna Limited": "Casa Moderna"}
     for r in records:
         try:
+            company = r.get("company", "Casa Moderna")
+            company = COMPANY_MAP.get(company, company)
             result = upsert_doc("Warehouse", {
                 "name": r["name"],
                 "warehouse_name": r.get("warehouse_name", r["name"]),
                 "warehouse_type": r.get("warehouse_type"),
                 "parent_warehouse": r.get("parent_warehouse") or "",
                 "is_group": r.get("is_group", 0),
-                "company": r.get("company", "Casa Moderna"),
+                "company": company,
                 "disabled": r.get("disabled", 0),
             }, dry_run=dry_run)
             if result == "created": stats.created += 1
@@ -363,17 +369,25 @@ def import_configurator_pricing(data_dir: Path, dry_run: bool) -> Stats:
 
             # Insert matrix rows (skip if already present)
             config_doc = frappe.get_doc("CM Configurator Pricing", r["name"])
-            existing = {(m.tier_name, m.option_code) for m in config_doc.get("matrix", [])}
+            existing_rows = config_doc.get("matrix") or []
+            existing = {(m.get("tier_name"), m.get("option_code")) for m in existing_rows}
             for m in matrix:
                 key = (m.get("tier_name"), m.get("option_code"))
                 if key not in existing:
                     config_doc.append("matrix", {
                         "tier_name": m.get("tier_name"),
                         "role_name": m.get("role_name"),
+                        "mode": m.get("mode"),
                         "option_code": m.get("option_code"),
+                        "handle_variant": m.get("handle_variant"),
+                        "finish_code": m.get("finish_code"),
+                        "seat_count": m.get("seat_count", 0),
+                        "extra_key_1": m.get("extra_key_1"),
+                        "extra_key_2": m.get("extra_key_2"),
                         "offer_price_inc_vat": m.get("offer_price_inc_vat"),
                         "rrp_inc_vat": m.get("rrp_inc_vat"),
                         "cost_price": m.get("cost_price"),
+                        "notes": m.get("notes"),
                     })
             config_doc.flags.ignore_permissions = True
             config_doc.save()
@@ -388,6 +402,9 @@ def import_users(data_dir: Path, dry_run: bool) -> Stats:
     users = load(data_dir, "users.json")
     salespeople = load(data_dir, "salespeople.json")
     stats = Stats()
+
+    # Get valid roles in V3
+    valid_roles = set(frappe.db.get_all("Role", pluck="name"))
 
     for u in users:
         roles = u.pop("roles", [])
@@ -407,7 +424,10 @@ def import_users(data_dir: Path, dry_run: bool) -> Stats:
                 # Set a temporary random password — user must reset on first login
                 doc.new_password = frappe.generate_hash(length=12)
                 for role in roles:
-                    doc.append("roles", {"role": role})
+                    if role in valid_roles:
+                        doc.append("roles", {"role": role})
+                    else:
+                        stats.error_details.append(f"{u.get('name')}: skipped unknown role '{role}'")
                 if not dry_run:
                     doc.flags.ignore_permissions = True
                     doc.flags.ignore_password_policy = True
