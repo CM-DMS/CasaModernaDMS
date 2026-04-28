@@ -66,14 +66,18 @@ def load(data_dir: Path, filename: str) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+# System-managed timestamp/ownership fields — never import from V2
+_SYSTEM_FIELDS = frozenset({"modified", "creation", "owner", "modified_by"})
+
+
 def upsert_doc(doctype: str, data: dict, key_field: str = "name", dry_run: bool = False) -> str:
     """Insert or update a document. Returns 'created'|'updated'|'skipped'."""
     name = data.get(key_field) or data.get("name")
     if not name:
         raise ValueError(f"No {key_field!r} in record: {list(data.keys())[:5]}")
 
-    # Remove None values to avoid overwriting good data with nulls
-    clean = {k: v for k, v in data.items() if v is not None}
+    # Remove None values and system fields to avoid timestamp conflicts
+    clean = {k: v for k, v in data.items() if v is not None and k not in _SYSTEM_FIELDS}
 
     if frappe.db.exists(doctype, name):
         doc = frappe.get_doc(doctype, name)
@@ -276,19 +280,41 @@ def import_items(data_dir: Path, dry_run: bool) -> Stats:
     stats = Stats()
     for r in records:
         try:
-            # Drop standard_rate so after_insert won't auto-create an Item Price
-            # (we import item prices via import_item_prices separately)
-            r.pop("standard_rate", None)
-            r.pop("last_purchase_rate", None)
-            # Ensure the stock_uom is in the UOM Conversion Factor table so
-            # any remaining validation can resolve it.
+            item_code = r.get("item_code") or r.get("name")
+            # Strip fields that trigger problematic hooks or type errors
+            for f in ("standard_rate", "last_purchase_rate", "uoms") + tuple(_SYSTEM_FIELDS):
+                r.pop(f, None)
             stock_uom = r.get("stock_uom") or "Nos"
-            if not r.get("uoms"):
-                r["uoms"] = [{"uom": stock_uom, "conversion_factor": 1}]
-            result = upsert_doc("Item", r, key_field="item_code", dry_run=dry_run)
-            if result == "created": stats.created += 1
-            elif result == "updated": stats.updated += 1
-            else: stats.skipped += 1
+            clean = {k: v for k, v in r.items() if v is not None}
+
+            if dry_run:
+                if frappe.db.exists("Item", item_code):
+                    stats.updated += 1
+                else:
+                    stats.created += 1
+                continue
+
+            if frappe.db.exists("Item", item_code):
+                doc = frappe.get_doc("Item", item_code)
+                for k, v in clean.items():
+                    if k not in ("item_code", "name") and hasattr(doc, k):
+                        setattr(doc, k, v)
+                doc.flags.ignore_permissions = True
+                doc.flags.ignore_validate = True
+                doc.flags.ignore_mandatory = True
+                doc.save()
+                stats.updated += 1
+            else:
+                doc = frappe.new_doc("Item")
+                doc.update(clean)
+                # Add UOM conversion row via append so Frappe creates a proper child doc
+                if not doc.get("uoms"):
+                    doc.append("uoms", {"uom": stock_uom, "conversion_factor": 1})
+                doc.flags.ignore_permissions = True
+                doc.flags.ignore_validate = True
+                doc.flags.ignore_mandatory = True
+                doc.insert()
+                stats.created += 1
         except Exception as e:
             stats.errors += 1
             stats.error_details.append(f"{r.get('item_code')}: {e}")
