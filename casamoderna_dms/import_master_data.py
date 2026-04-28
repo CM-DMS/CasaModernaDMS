@@ -337,17 +337,84 @@ def import_items(data_dir: Path, dry_run: bool) -> Stats:
 
 
 def import_item_prices(data_dir: Path, dry_run: bool) -> Stats:
+    """Idempotent import of Item Price. Uses (item_code, price_list, uom) as
+    the natural key since Item Price names are system-generated hashes and
+    differ between V2 and V3. Any duplicates in V3 are collapsed first."""
     records = load(data_dir, "item_prices.json")
     stats = Stats()
+
+    # Step 1: collapse any duplicates left by previous non-idempotent runs.
+    # Keep the most recently modified record for each (item_code, price_list, uom).
+    if not dry_run:
+        dupes = frappe.db.sql(
+            """
+            SELECT item_code, price_list, uom, COUNT(*) AS cnt
+            FROM `tabItem Price`
+            GROUP BY item_code, price_list, uom
+            HAVING cnt > 1
+            """,
+            as_dict=True,
+        )
+        for row in dupes:
+            names = [
+                r[0]
+                for r in frappe.db.sql(
+                    """
+                    SELECT name FROM `tabItem Price`
+                    WHERE item_code=%s AND price_list=%s AND uom=%s
+                    ORDER BY modified DESC
+                    """,
+                    (row.item_code, row.price_list, row.uom),
+                )
+            ]
+            # Delete all but the first (most recent)
+            for name in names[1:]:
+                frappe.delete_doc("Item Price", name, ignore_permissions=True, force=True)
+
+    # Step 2: upsert using natural key
     for r in records:
         try:
-            result = upsert_doc("Item Price", r, dry_run=dry_run)
-            if result == "created": stats.created += 1
-            elif result == "updated": stats.updated += 1
-            else: stats.skipped += 1
+            item_code = r.get("item_code")
+            price_list = r.get("price_list")
+            uom = r.get("uom") or "EA"
+            if not item_code or not price_list:
+                stats.errors += 1
+                stats.error_details.append(f"Missing item_code/price_list in: {r}")
+                continue
+
+            existing = frappe.db.get_value(
+                "Item Price",
+                {"item_code": item_code, "price_list": price_list, "uom": uom},
+                "name",
+            )
+            clean = {k: v for k, v in r.items() if v is not None and k not in _SYSTEM_FIELDS}
+
+            if existing:
+                if not dry_run:
+                    doc = frappe.get_doc("Item Price", existing)
+                    for k, v in clean.items():
+                        if k == "name":
+                            continue
+                        if hasattr(doc, k):
+                            setattr(doc, k, v)
+                    doc.flags.ignore_permissions = True
+                    doc.flags.ignore_validate = True
+                    doc.flags.ignore_links = True
+                    doc.save()
+                stats.updated += 1
+            else:
+                if not dry_run:
+                    doc = frappe.new_doc("Item Price")
+                    doc.update(clean)
+                    doc.flags.ignore_permissions = True
+                    doc.flags.ignore_mandatory = True
+                    doc.flags.ignore_validate = True
+                    doc.flags.ignore_links = True
+                    doc.insert()
+                stats.created += 1
         except Exception as e:
             stats.errors += 1
-            stats.error_details.append(f"{r.get('name')}: {e}")
+            stats.error_details.append(f"{r.get('item_code')}/{r.get('price_list')}: {e}")
     return stats
 
 
@@ -428,15 +495,15 @@ def import_configurator_pricing(data_dir: Path, dry_run: bool) -> Stats:
 
             # Use direct DB insert for matrix rows to bypass doc hooks entirely
             # Unique key = mode|finish_code|seat_count (tier_name and option_code are non-unique)
-            existing_keys = set(
-                frappe.db.sql(
+            existing_keys = {
+                row[0]
+                for row in frappe.db.sql(
                     """SELECT CONCAT(IFNULL(mode,''), '|', IFNULL(finish_code,''), '|', IFNULL(seat_count,''))
                        FROM `tabCM Configurator Pricing Matrix`
                        WHERE parent=%s""",
                     r["name"], as_list=True
-                ) or []
-            )
-            existing_keys = {row[0] for row in existing_keys}
+                )
+            }
             for m in matrix:
                 key = f"{m.get('mode') or ''}|{m.get('finish_code') or ''}|{m.get('seat_count') or 0}"
                 if key not in existing_keys:
@@ -491,6 +558,10 @@ def import_users(data_dir: Path, dry_run: bool) -> Stats:
         # Strip system-managed fields to avoid timestamp conflicts
         for f in _SYSTEM_FIELDS:
             u.pop(f, None)
+        # mobile_no has a unique index in tabUser — clear it to avoid duplicate collisions
+        # (V2 had placeholder numbers shared across multiple users)
+        u.pop("mobile_no", None)
+        u.pop("phone", None)
         try:
             if frappe.db.exists("User", u["name"]):
                 doc = frappe.get_doc("User", u["name"])
@@ -499,6 +570,11 @@ def import_users(data_dir: Path, dry_run: bool) -> Stats:
                         setattr(doc, k, v)
                 # Never copy role_profile from V2 — assign roles directly
                 doc.role_profile_name = None
+                # Sync roles: add any missing ones
+                existing_roles = {r.role for r in doc.get("roles", [])}
+                for role in roles:
+                    if role in valid_roles and role not in existing_roles:
+                        doc.append("roles", {"role": role})
                 if not dry_run:
                     doc.flags.ignore_permissions = True
                     doc.flags.ignore_links = True

@@ -281,7 +281,6 @@ def export_users(conn: pymysql.Connection, out_dir: Path) -> None:
         FROM `tabUser`
         WHERE user_type = 'System User'
           AND name NOT IN ('Administrator', 'Guest')
-          AND enabled = 1
         ORDER BY name
     """)
 
