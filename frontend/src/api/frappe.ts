@@ -225,7 +225,16 @@ export const frappe = {
   async getList<T = unknown>(doctype: string, opts: ListOptions = {}): Promise<T[]> {
     const params = new URLSearchParams()
     if (opts.fields) params.set('fields', JSON.stringify(opts.fields))
-    if (opts.filters) params.set('filters', JSON.stringify(opts.filters))
+    if (opts.filters) {
+      // Normalize filters: strip trailing "" from 4-element [field, op, value, ""] arrays.
+      // Frappe v2 REST expects 3-element [field, op, value] tuples; the 4-element form is
+      // interpreted as [doctype, field, op, value] (cross-doctype join) which breaks queries.
+      const raw = opts.filters
+      const normalized = Array.isArray(raw)
+        ? raw.map(f => (Array.isArray(f) && f.length === 4 && f[3] === '' ? f.slice(0, 3) : f))
+        : raw
+      params.set('filters', JSON.stringify(normalized))
+    }
     if (opts.limit) params.set('limit', String(opts.limit))
     if (opts.order_by) params.set('order_by', opts.order_by)
     if (opts.limit_start) params.set('start', String(opts.limit_start))

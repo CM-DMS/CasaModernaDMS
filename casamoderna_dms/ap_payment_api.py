@@ -186,3 +186,13 @@ def get_bill_payment_history(bill_name):
         {"bill_name": bill_name},
         as_dict=True,
     )
+
+
+# ---------------------------------------------------------------------------
+# 4. Payment modes
+# ---------------------------------------------------------------------------
+
+@frappe.whitelist()
+def get_payment_modes():
+    """Return names of all active Modes of Payment for the AP payment form."""
+    return frappe.get_all("Mode of Payment", pluck="name", order_by="name")

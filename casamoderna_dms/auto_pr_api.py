@@ -45,14 +45,13 @@ def get_reorder_suggestions(warehouse: str = "") -> list[dict]:
             ir.warehouse_reorder_level        AS reorder_level,
             ir.warehouse_reorder_qty          AS reorder_qty,
             (ir.warehouse_reorder_level - IFNULL(b.actual_qty, 0)) AS deficit,
-            i.default_supplier                AS default_supplier,
-            sup.supplier_name                 AS default_supplier_name,
+            i.cm_supplier_code                AS default_supplier,
+            i.cm_supplier_name                AS default_supplier_name,
             IFNULL(i.last_purchase_rate, 0)   AS last_purchase_rate,
             i.description
         FROM `tabItem Reorder` ir
         INNER JOIN `tabItem` i ON i.name = ir.parent AND i.disabled = 0 AND i.is_purchase_item = 1
         LEFT  JOIN `tabBin`  b ON b.item_code = ir.parent AND b.warehouse = ir.warehouse
-        LEFT  JOIN `tabSupplier` sup ON sup.name = i.default_supplier
         WHERE ir.parenttype = 'Item'
           AND IFNULL(ir.warehouse_reorder_level, 0) > 0
           AND IFNULL(b.actual_qty, 0) <= ir.warehouse_reorder_level
