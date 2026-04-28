@@ -1,138 +1,182 @@
-import { useEffect, useState } from 'react'
+/**
+ * ProductProfile — 4-tab product detail screen (V3).
+ *
+ * Tabs:
+ *   General         — always
+ *   Suppliers & Pricing — canPurchasing || canSeePricing || canAdmin
+ *   Stock           — canStock || canAdmin
+ *   Transactions    — canSales || canPurchasing || canAdmin
+ */
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
 import { usePermissions } from '../../auth/PermissionsProvider'
-import { CM } from '../../components/ui/CMClassNames'
+import { PageHeader, BackLink } from '../../components/shared/ui'
+import { CMButton } from '../../components/ui/CMComponents'
+import { productsApi } from '../../api/products'
+import type { ItemDoc } from '../../api/products'
+import { ProductGeneralTab } from './ProductGeneralTab'
+import { ProductSuppliersPricingTab } from './ProductSuppliersPricingTab'
+import { ProductStockTab } from './ProductStockTab'
+import { ProductTransactionsTab } from './ProductTransactionsTab'
 
-interface ItemDoc {
-  name: string
-  item_name: string
-  item_group: string
-  stock_uom: string
-  disabled: 0 | 1
-  cm_product_code?: string
-  cm_supplier_code?: string
-  cm_family_code?: string
-  cm_tiles_per_box?: number
-  description?: string
-}
+type Tab = 'general' | 'pricing' | 'stock' | 'transactions'
 
-interface ItemPrice {
-  name: string
-  price_list: string
-  price_list_rate: number
-  currency: string
-  valid_from?: string
-  valid_upto?: string
+interface TabDef {
+  id: Tab
+  label: string
 }
 
 export function ProductProfile() {
   const { itemCode } = useParams<{ itemCode: string }>()
   const navigate = useNavigate()
   const { can } = usePermissions()
+
+  const canEditProduct = can('canEditProduct') || can('canAdmin')
+  const canPurchasing = can('canPurchasing') || can('canAdmin')
+  const canSeePricing = can('canSeePricing') || can('canAdmin')
+  const canStock = can('canStock') || can('canAdmin')
+  const canSales = can('canSales') || can('canAdmin')
+  const canAdmin = can('canAdmin')
+
   const [item, setItem] = useState<ItemDoc | null>(null)
-  const [prices, setPrices] = useState<ItemPrice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState<Tab>('general')
+  const [duplicating, setDuplicating] = useState(false)
+
+  const tabs: TabDef[] = [
+    { id: 'general', label: 'General' },
+    ...(canPurchasing || canSeePricing || canAdmin
+      ? [{ id: 'pricing' as Tab, label: 'Suppliers & Pricing' }]
+      : []),
+    ...(canStock || canAdmin ? [{ id: 'stock' as Tab, label: 'Stock' }] : []),
+    ...(canSales || canPurchasing || canAdmin
+      ? [{ id: 'transactions' as Tab, label: 'Transactions' }]
+      : []),
+  ]
+
+  const loadItem = useCallback(
+    (code: string) => {
+      setLoading(true)
+      setError('')
+      productsApi
+        .get(code)
+        .then((d) => setItem(d))
+        .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load product'))
+        .finally(() => setLoading(false))
+    },
+    [],
+  )
 
   useEffect(() => {
-    if (!itemCode) return
-    setLoading(true)
-    Promise.all([
-      frappe.getDoc<ItemDoc>('Item', itemCode),
-      frappe.getList<ItemPrice>('Item Price', {
-        fields: ['name', 'price_list', 'price_list_rate', 'currency', 'valid_from', 'valid_upto'],
-        filters: [['item_code', '=', itemCode, '']],
-        order_by: 'price_list asc',
-        limit: 50,
-      }),
-    ])
-      .then(([doc, p]) => {
-        setItem(doc)
-        setPrices(p)
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false))
-  }, [itemCode])
+    if (itemCode) loadItem(decodeURIComponent(itemCode))
+  }, [itemCode, loadItem])
 
-  if (loading) return <p className="text-sm text-gray-400 animate-pulse">Loading…</p>
-  if (error) return <p className="text-sm text-red-600">{error}</p>
+  const onRefresh = useCallback(() => {
+    if (itemCode) loadItem(decodeURIComponent(itemCode))
+  }, [itemCode, loadItem])
+
+  async function handleDuplicate() {
+    if (!item) return
+    setDuplicating(true)
+    try {
+      const copied = await frappe.call<{ name: string }>('frappe.client.copy_doc', {
+        doctype: 'Item',
+        name: item.name,
+      })
+      navigate(`/products/${encodeURIComponent(copied.name)}/edit`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Duplicate failed')
+    } finally {
+      setDuplicating(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="h-6 w-6 rounded-full border-4 border-cm-green border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {error}
+      </div>
+    )
+  }
   if (!item) return null
 
-  const fmt = (n: number, currency = 'EUR') =>
-    new Intl.NumberFormat('en-MT', { style: 'currency', currency }).format(n)
+  const displayName = item.cm_given_name || item.item_name || item.item_code
 
   return (
-    <div className="max-w-3xl">
-      <button
-        onClick={() => navigate('/products')}
-        className="text-sm text-gray-400 hover:text-gray-700 mb-4 inline-flex items-center gap-1"
-      >
-        ← Products
-      </button>
+    <div className="space-y-4">
+      <BackLink label="Products" onClick={() => navigate('/products')} />
 
-      <div className="flex items-start justify-between gap-4 mb-1">
-        <h1 className="text-xl font-semibold text-gray-900">{item.item_name}</h1>
-        {(can('canEditProduct') || can('canAdmin')) && (
+      <PageHeader
+        title={displayName}
+        subtitle={item.item_code !== displayName ? item.item_code : undefined}
+        actions={
+          <div className="flex items-center gap-2">
+            {canEditProduct && (
+              <>
+                <CMButton
+                  variant="ghost"
+                  onClick={() => void handleDuplicate()}
+                  disabled={duplicating}
+                >
+                  {duplicating ? 'Duplicating…' : 'Duplicate'}
+                </CMButton>
+                <CMButton
+                  onClick={() =>
+                    navigate(`/products/${encodeURIComponent(item.name)}/edit`)
+                  }
+                >
+                  Edit
+                </CMButton>
+              </>
+            )}
+          </div>
+        }
+      />
+
+      {/* Tab bar */}
+      <div className="flex border-b border-gray-200">
+        {tabs.map((tab) => (
           <button
-            className={CM.btn.secondary}
-            onClick={() => navigate(`/products/${encodeURIComponent(item.name)}/edit`)}
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={[
+              'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
+              activeTab === tab.id
+                ? 'border-cm-green text-cm-green'
+                : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300',
+            ].join(' ')}
           >
-            Edit
+            {tab.label}
           </button>
+        ))}
+      </div>
+
+      {/* Tab panels */}
+      <div className="space-y-5">
+        {activeTab === 'general' && (
+          <ProductGeneralTab item={item} onRefresh={onRefresh} />
+        )}
+        {activeTab === 'pricing' && (canPurchasing || canSeePricing || canAdmin) && (
+          <ProductSuppliersPricingTab item={item} onRefresh={onRefresh} />
+        )}
+        {activeTab === 'stock' && (canStock || canAdmin) && (
+          <ProductStockTab item={item} />
+        )}
+        {activeTab === 'transactions' && (canSales || canPurchasing || canAdmin) && (
+          <ProductTransactionsTab item={item} />
         )}
       </div>
-      <p className="text-xs text-gray-400 font-mono mb-6">{item.name}</p>
-
-      <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-        <Field label="Group" value={item.item_group} />
-        <Field label="UOM" value={item.stock_uom} />
-        <Field label="Product Code" value={item.cm_product_code} />
-        <Field label="Supplier Code" value={item.cm_supplier_code} />
-        <Field label="Family Code" value={item.cm_family_code} />
-        {item.cm_tiles_per_box ? (
-          <Field label="Tiles per Box" value={String(item.cm_tiles_per_box)} />
-        ) : null}
-      </div>
-
-      {prices.length > 0 && (
-        <>
-          <h2 className="text-sm font-semibold text-gray-700 mb-2">Prices</h2>
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
-                <tr>
-                  <th className="px-4 py-2 text-left">Price List</th>
-                  <th className="px-4 py-2 text-right">Rate</th>
-                  <th className="px-4 py-2 text-left">Valid From</th>
-                  <th className="px-4 py-2 text-left">Valid Until</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {prices.map((p) => (
-                  <tr key={p.name}>
-                    <td className="px-4 py-2 text-gray-700">{p.price_list}</td>
-                    <td className="px-4 py-2 text-right font-mono">
-                      {fmt(p.price_list_rate, p.currency)}
-                    </td>
-                    <td className="px-4 py-2 text-gray-400">{p.valid_from ?? '—'}</td>
-                    <td className="px-4 py-2 text-gray-400">{p.valid_upto ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
     </div>
   )
 }
 
-function Field({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div>
-      <dt className="text-xs text-gray-400 uppercase tracking-wide">{label}</dt>
-      <dd className="text-gray-800 mt-0.5">{value ?? '—'}</dd>
-    </div>
-  )
-}
