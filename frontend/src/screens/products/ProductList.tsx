@@ -4,7 +4,7 @@
  * Features:
  *   - Grid / List view toggle
  *   - Infinite scroll via IntersectionObserver
- *   - URL-state sync (q, groups, brand, sort, inactive, hidden, instock, minp, maxp, barcode)
+ *   - URL-state sync (q, groups, brand, sort, inactive, hidden, instock, minp, maxp)
  *   - Recent searches dropdown (localStorage)
  *   - Compare up to 4 products (CompareBar + CompareModal)
  *   - Bulk hide / unhide / toggle inactive (BulkActionBar)
@@ -405,8 +405,6 @@ export function ProductList() {
   const [inStockOnly, setInStockOnly] = useState(searchParams.get('instock') === '1')
   const [minPrice, setMinPrice] = useState(searchParams.get('minp') ?? '')
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxp') ?? '')
-  const [barcode, setBarcode] = useState(searchParams.get('barcode') ?? '')
-
   // Sync URL on filter changes
   useEffect(() => {
     const p: Record<string, string> = {}
@@ -419,9 +417,8 @@ export function ProductList() {
     if (inStockOnly) p['instock'] = '1'
     if (minPrice) p['minp'] = minPrice
     if (maxPrice) p['maxp'] = maxPrice
-    if (barcode) p['barcode'] = barcode
     setSearchParams(p, { replace: true })
-  }, [q, selectedGroups, brand, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice, barcode, setSearchParams])
+  }, [q, selectedGroups, brand, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice, setSearchParams])
 
   // UI state
   const [view, setView] = useState<'grid' | 'list'>('grid')
@@ -474,7 +471,6 @@ export function ProductList() {
         inStockOnly: inStockOnly ? true : undefined,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
-        barcode: barcode || undefined,
       })
       const list = rows ?? []
       setItems((prev) => (append ? [...prev, ...list] : list))
@@ -487,7 +483,7 @@ export function ProductList() {
       loadingRef.current = false
       setLoading(false)
     }
-  }, [q, selectedGroups, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice, barcode])
+  }, [q, selectedGroups, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice])
 
   // Reset + fetch on filter change
   useEffect(() => {
@@ -497,7 +493,7 @@ export function ProductList() {
     setHasMore(true)
     void fetchProducts(false, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, selectedGroups, brand, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice, barcode])
+  }, [q, selectedGroups, brand, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice])
 
   // Infinite scroll
   useEffect(() => {
@@ -634,9 +630,6 @@ export function ProductList() {
             </div>
           )}
         </div>
-
-        {/* Barcode */}
-        <input type="text" placeholder="Barcode / EAN" value={barcode} onChange={(e) => setBarcode(e.target.value)} className={CM.input + ' w-36'} />
 
         {/* Groups multi-filter */}
         <div className="relative">
