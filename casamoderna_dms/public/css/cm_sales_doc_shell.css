@@ -1,0 +1,168 @@
+/* CM_SALES_DOC_SHELL_V1
+ * Slice 015: Unified V1-like Sales Docs screen shell (UI-only).
+ * Uses existing Frappe theme CSS variables (no hard-coded colors).
+ */
+
+.cm-sales-shell {
+	margin: 0 0 var(--margin-lg);
+}
+
+.cm-sales-shell__bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--margin-md);
+	padding: var(--padding-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-bg);
+}
+
+.cm-sales-shell__bar-left {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--margin-sm);
+}
+
+.cm-sales-shell__doctype {
+	font-weight: 600;
+	color: var(--text-color);
+	line-height: 1.2;
+}
+
+.cm-sales-shell__pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--margin-sm);
+}
+
+.cm-sales-shell__pill {
+	display: inline-flex;
+	gap: 6px;
+	align-items: center;
+	padding: 4px 8px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--fg-color);
+	color: var(--text-color);
+	white-space: nowrap;
+}
+
+.cm-sales-shell__pill-k {
+	color: var(--text-muted);
+	font-size: 12px;
+}
+
+.cm-sales-shell__pill-v {
+	font-weight: 600;
+	font-size: 12px;
+}
+
+.cm-sales-shell__bar-right {
+	display: inline-flex;
+	gap: var(--margin-sm);
+	align-items: center;
+	flex-shrink: 0;
+}
+
+/* Slice 021: Convert group slot inside identity strip */
+.cm-sales-shell__convert-slot {
+	display: inline-flex;
+	align-items: center;
+}
+
+.cm-sales-shell__convert-slot .btn,
+.cm-sales-shell__convert-slot .btn-group .btn {
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
+.cm-sales-shell__cards {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--margin-md);
+	margin-top: var(--margin-md);
+}
+
+@media (max-width: 900px) {
+	.cm-sales-shell__cards {
+		grid-template-columns: 1fr;
+	}
+}
+
+.cm-sales-shell__card {
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-bg);
+}
+
+.cm-sales-shell__card-h {
+	padding: var(--padding-sm) var(--padding-md);
+	border-bottom: 1px solid var(--border-color);
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+.cm-sales-shell__card-b {
+	padding: var(--padding-md);
+}
+
+.cm-sales-shell__kv {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--margin-md);
+	padding: 4px 0;
+	border-bottom: 1px dashed var(--border-color);
+}
+
+.cm-sales-shell__kv:last-child {
+	border-bottom: 0;
+}
+
+.cm-sales-shell__k {
+	color: var(--text-muted);
+	font-size: 12px;
+	min-width: 140px;
+}
+
+.cm-sales-shell__v {
+	color: var(--text-color);
+	font-size: 12px;
+	font-weight: 500;
+	text-align: right;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.cm-sales-shell__empty {
+	color: var(--text-muted);
+	font-size: 12px;
+}
+
+.cm-sales-shell__products {
+	margin-top: var(--margin-lg);
+	margin-bottom: var(--margin-sm);
+	font-weight: 600;
+	color: var(--text-color);
+}
+
+.cm-sales-shell__bottom {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--margin-md);
+	margin-top: var(--margin-lg);
+}
+
+.cm-sales-shell__bottom-right {
+	display: flex;
+	flex-direction: column;
+	gap: var(--margin-md);
+}
+
+@media (max-width: 900px) {
+	.cm-sales-shell__bottom {
+		grid-template-columns: 1fr;
+	}
+}

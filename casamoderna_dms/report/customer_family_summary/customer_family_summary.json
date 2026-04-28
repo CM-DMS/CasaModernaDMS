@@ -1,0 +1,36 @@
+{
+ "add_total_row": 1,
+ "apply_user_permissions": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "is_standard": "Yes",
+ "module": "CasaModerna Custom",
+ "name": "Customer Family Summary",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Customer",
+ "report_name": "Customer Family Summary",
+ "report_type": "Query Report",
+ "query": "SELECT\n\troot.name as \"Root Customer:Link/Customer:160\",\n\troot.customer_name as \"Root Customer Name::200\",\n\tCOALESCE(fam.customers_in_family, 1) as \"# Customers:Int:90\",\n\tCOALESCE(so.total_so, 0) as \"Total SO:Currency:120\",\n\tCOALESCE(si.total_si, 0) as \"Total SI:Currency:120\",\n\tCOALESCE(si.outstanding, 0) as \"Outstanding:Currency:120\"\nFROM\n\t`tabCustomer` root\nLEFT JOIN (\n\tSELECT\n\t\tCOALESCE(NULLIF(cm_root_customer, ''), name) as root_customer,\n\t\tCOUNT(*) as customers_in_family\n\tFROM\n\t\t`tabCustomer`\n\tGROUP BY\n\t\tCOALESCE(NULLIF(cm_root_customer, ''), name)\n) fam ON fam.root_customer = root.name\nLEFT JOIN (\n\tSELECT\n\t\tCOALESCE(NULLIF(c.cm_root_customer, ''), c.name) as root_customer,\n\t\tSUM(so.base_net_total) as total_so\n\tFROM\n\t\t`tabSales Order` so\n\t\tJOIN `tabCustomer` c ON c.name = so.customer\n\tWHERE\n\t\tso.docstatus = 1\n\t\tAND (%(from_date)s IS NULL OR so.transaction_date >= %(from_date)s)\n\t\tAND (%(to_date)s IS NULL OR so.transaction_date <= %(to_date)s)\n\t\tAND (%(sales_person)s IS NULL OR EXISTS (\n\t\t\tSELECT 1 FROM `tabSales Team` st\n\t\t\tWHERE st.parenttype = 'Sales Order' AND st.parent = so.name AND st.sales_person = %(sales_person)s\n\t\t))\n\tGROUP BY\n\t\tCOALESCE(NULLIF(c.cm_root_customer, ''), c.name)\n) so ON so.root_customer = root.name\nLEFT JOIN (\n\tSELECT\n\t\tCOALESCE(NULLIF(c.cm_root_customer, ''), c.name) as root_customer,\n\t\tSUM(si.base_net_total) as total_si,\n\t\tSUM(si.outstanding_amount) as outstanding\n\tFROM\n\t\t`tabSales Invoice` si\n\t\tJOIN `tabCustomer` c ON c.name = si.customer\n\tWHERE\n\t\tsi.docstatus = 1\n\t\tAND (%(from_date)s IS NULL OR si.posting_date >= %(from_date)s)\n\t	AND (%(to_date)s IS NULL OR si.posting_date <= %(to_date)s)\n\t	AND (%(sales_person)s IS NULL OR EXISTS (\n\t		SELECT 1 FROM `tabSales Team` st\n\t		WHERE st.parenttype = 'Sales Invoice' AND st.parent = si.name AND st.sales_person = %(sales_person)s\n\t	))\n\tGROUP BY\n\t\tCOALESCE(NULLIF(c.cm_root_customer, ''), c.name)\n) si ON si.root_customer = root.name\nWHERE\n\tCOALESCE(NULLIF(root.cm_root_customer, ''), root.name) = root.name\n\tAND (%(root_customer)s IS NULL OR root.name = %(root_customer)s)\nORDER BY\n\troot.customer_name",
+ "roles": [
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "CasaModerna Sales Console"
+  }
+ ]
+}

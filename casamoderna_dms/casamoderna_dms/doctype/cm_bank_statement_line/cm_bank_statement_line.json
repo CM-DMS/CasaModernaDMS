@@ -1,0 +1,159 @@
+{
+ "actions": [],
+ "autoname": "CM-BSL-.YYYY.-.########",
+ "creation": "2026-04-18 00:00:00.000000",
+ "custom": 0,
+ "doctype": "DocType",
+ "document_type": "",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_header",
+  "bank_account",
+  "transaction_date",
+  "reference_number",
+  "column_break_1",
+  "reconciliation_status",
+  "matched_doctype",
+  "matched_document",
+  "section_break_amounts",
+  "debit",
+  "credit",
+  "column_break_2",
+  "balance",
+  "currency",
+  "section_break_desc",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_header",
+   "fieldtype": "Section Break",
+   "label": "Transaction"
+  },
+  {
+   "fieldname": "bank_account",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bank Account",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "transaction_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Transaction Date",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "reference_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reference"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Unmatched",
+   "fieldname": "reconciliation_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Unmatched\nAuto-Matched\nReconciled\nException",
+   "search_index": 1
+  },
+  {
+   "fieldname": "matched_doctype",
+   "fieldtype": "Data",
+   "label": "Matched DocType"
+  },
+  {
+   "fieldname": "matched_document",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Matched Document"
+  },
+  {
+   "fieldname": "section_break_amounts",
+   "fieldtype": "Section Break",
+   "label": "Amounts"
+  },
+  {
+   "fieldname": "debit",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Debit (Out)"
+  },
+  {
+   "fieldname": "credit",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Credit (In)"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "balance",
+   "fieldtype": "Currency",
+   "label": "Running Balance"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Data",
+   "label": "Currency"
+  },
+  {
+   "fieldname": "section_break_desc",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-04-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Casamoderna DMS",
+ "name": "CM Bank Statement Line",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 0,
+   "export": 1,
+   "print": 0,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 0,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 0,
+   "export": 1,
+   "print": 0,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 0,
+   "write": 1
+  }
+ ],
+ "sort_field": "transaction_date",
+ "sort_order": "DESC",
+ "track_changes": 0
+}

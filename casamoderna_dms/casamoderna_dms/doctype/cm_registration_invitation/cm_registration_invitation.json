@@ -1,0 +1,122 @@
+{
+ "actions": [],
+ "autoname": "CM-INV-.YYYY.-.####",
+ "creation": "2026-04-12 00:00:00.000000",
+ "custom": 0,
+ "doctype": "DocType",
+ "document_type": "",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "token",
+  "sender_user",
+  "col1",
+  "method",
+  "recipient",
+  "sent_at",
+  "col2",
+  "redeemed",
+  "onboarding_request"
+ ],
+ "fields": [
+  {
+   "fieldname": "token",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Token",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "sender_user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sent By",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "col1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Email",
+   "fieldname": "method",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Method",
+   "options": "Email\nSMS"
+  },
+  {
+   "fieldname": "recipient",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Recipient"
+  },
+  {
+   "fieldname": "sent_at",
+   "fieldtype": "Datetime",
+   "label": "Sent At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "redeemed",
+   "fieldtype": "Check",
+   "label": "Redeemed"
+  },
+  {
+   "fieldname": "onboarding_request",
+   "fieldtype": "Link",
+   "label": "Onboarding Request",
+   "options": "CM Customer Onboarding Request",
+   "read_only": 1
+  }
+ ],
+ "icon": "fa fa-envelope",
+ "idx": 0,
+ "is_submittable": 0,
+ "links": [],
+ "modified": "2026-04-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Casamoderna DMS",
+ "name": "CM Registration Invitation",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "sent_at",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "recipient",
+ "track_changes": 0,
+ "track_seen": 0
+}

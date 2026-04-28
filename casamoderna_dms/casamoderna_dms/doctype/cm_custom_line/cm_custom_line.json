@@ -1,0 +1,191 @@
+{
+ "actions": [],
+ "autoname": "format:CFG-{YYYY}-{#####}",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "identity_section",
+  "line_type",
+  "status",
+  "column_break_identity",
+  "parent_doctype",
+  "parent_name",
+  "details_section",
+  "description",
+  "price_list",
+  "tier_name",
+  "column_break_details",
+  "offer_incl_vat",
+  "rrp_incl_vat",
+  "vat_rate",
+  "graduation_section",
+  "graduated_item",
+  "snapshots_section",
+  "config_json",
+  "pricing_json"
+ ],
+ "fields": [
+  {
+   "fieldname": "identity_section",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "line_type",
+   "fieldtype": "Select",
+   "label": "Line Type",
+   "options": "CONFIGURED\nFREETEXT",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nConfirmed\nCancelled",
+   "default": "Draft",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "parent_doctype",
+   "fieldtype": "Link",
+   "label": "Parent Doctype",
+   "options": "DocType",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "parent_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Parent Document",
+   "options": "parent_doctype",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "price_list",
+   "fieldtype": "Link",
+   "label": "Price List",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "tier_name",
+   "fieldtype": "Data",
+   "label": "Tier (at approval)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "offer_incl_vat",
+   "fieldtype": "Currency",
+   "label": "Offer Price (inc VAT)",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "rrp_incl_vat",
+   "fieldtype": "Currency",
+   "label": "RRP (inc VAT)"
+  },
+  {
+   "fieldname": "vat_rate",
+   "fieldtype": "Percent",
+   "label": "VAT Rate (%)"
+  },
+  {
+   "fieldname": "graduation_section",
+   "fieldtype": "Section Break",
+   "label": "Graduation to Stock Item"
+  },
+  {
+   "fieldname": "graduated_item",
+   "fieldtype": "Link",
+   "label": "Graduated Stock Item",
+   "options": "Item",
+   "description": "When this custom line is later registered as a permanent stock SKU, link it here. The CFG- reference is kept for backwards tracing."
+  },
+  {
+   "fieldname": "snapshots_section",
+   "fieldtype": "Section Break",
+   "label": "Snapshots"
+  },
+  {
+   "fieldname": "config_json",
+   "fieldtype": "Long Text",
+   "label": "Configuration JSON",
+   "description": "Frozen snapshot of the configurator choice state. Null for FREETEXT lines.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pricing_json",
+   "fieldtype": "Long Text",
+   "label": "Pricing JSON",
+   "description": "Frozen snapshot of the component price breakdown at the time of approval.",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Casamoderna DMS",
+ "name": "CM Custom Line",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 0,
+   "export": 1,
+   "print": 0,
+   "read": 1,
+   "report": 1,
+   "role": "CasaModerna Sales Console",
+   "share": 0,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "CasaModerna Product Maintainer",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "name",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

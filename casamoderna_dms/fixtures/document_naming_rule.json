@@ -1,0 +1,46 @@
+[
+ {
+  "conditions": [
+   {
+    "condition": "!=",
+    "field": "cm_document_subtype",
+    "parent": "9c0oq44u38",
+    "parentfield": "conditions",
+    "parenttype": "Document Naming Rule",
+    "value": "Proforma"
+   }
+  ],
+  "counter": 77,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Document Naming Rule",
+  "document_type": "Quotation",
+  "modified": "2026-04-17 16:18:43.610023",
+  "name": "9c0oq44u38",
+  "prefix": "QT ",
+  "prefix_digits": 6,
+  "priority": 0
+ },
+ {
+  "conditions": [
+   {
+    "condition": "=",
+    "field": "cm_document_subtype",
+    "parent": "k171sppqed",
+    "parentfield": "conditions",
+    "parenttype": "Document Naming Rule",
+    "value": "Proforma"
+   }
+  ],
+  "counter": 0,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Document Naming Rule",
+  "document_type": "Quotation",
+  "modified": "2026-04-12 18:28:25.959291",
+  "name": "k171sppqed",
+  "prefix": "PI ",
+  "prefix_digits": 6,
+  "priority": 10
+ }
+]

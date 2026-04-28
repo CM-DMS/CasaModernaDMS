@@ -1,0 +1,325 @@
+"""catalogue_search.py
+
+Unified Product Catalogue Search API — returns matching Items with free-stock
+data joined from tabBin in a single SQL query, supporting full-text search,
+multi-group filtering, supplier filtering, sorting and pagination.
+
+Used by the DMS React frontend ProductList catalogue page.
+"""
+
+from __future__ import annotations
+
+import json
+from datetime import date, timedelta
+
+import frappe
+
+
+# ── Field list returned for every item ───────────────────────────────────────
+
+_ITEM_COLS = [
+    "name", "item_code", "item_name", "item_group", "cm_given_name",
+    "stock_uom", "brand", "disabled", "image", "creation",
+    "cm_rrp_ex_vat", "cm_rrp_inc_vat", "cm_final_offer_inc_vat",
+    "cm_final_offer_ex_vat", "cm_discount_percent", "cm_discount_target_percent",
+    "cm_hidden_from_catalogue", "cm_product_type",
+    "cm_supplier_code", "cm_supplier_item_code",
+]
+
+# Allowed ORDER BY columns — validated against this set to prevent injection.
+_SORT_COLS = {
+    "item_name":              "i.item_name",
+    "item_code":              "i.item_code",
+    "cm_given_name":          "COALESCE(i.cm_given_name, i.item_name)",
+    "cm_final_offer_inc_vat": "i.cm_final_offer_inc_vat",
+    "free_stock":             "free_stock",
+}
+
+
+def _parse_list_param(value) -> list:
+    """Accept either a Python list or a JSON-encoded string; always return a list."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [v for v in value if v]
+    if isinstance(value, str):
+        if not value.strip():
+            return []
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else [parsed]
+        except (json.JSONDecodeError, ValueError):
+            return [value]
+    return []
+
+
+@frappe.whitelist()
+def search_catalogue(
+    q="",
+    item_groups=None,
+    supplier_code="",
+    disabled=None,
+    show_hidden=0,
+    product_type="Primary",
+    sort_by="item_name",
+    sort_dir="asc",
+    limit=50,
+    offset=0,
+    in_stock_only=0,
+    min_price=None,
+    max_price=None,
+    barcode="",
+):
+    """Search the product catalogue.
+
+    Returns ``{"rows": [...], "total": N}`` where ``rows`` includes all
+    ``_ITEM_COLS`` fields plus a computed ``free_stock`` column
+    (actual_qty - reserved_qty, summed across all warehouses).
+
+    Parameters
+    ----------
+    q           : free-text search (item_name, item_code, cm_given_name, cm_supplier_item_code)
+    item_groups : JSON array of item_group names to include (empty = all)
+    supplier_code : exact cm_supplier_code filter
+    disabled    : 0/1 to include only active/inactive; omit for active-only
+    show_hidden : include cm_hidden_from_catalogue=1 items
+    product_type: 'Primary', 'All', or any cm_product_type value
+    sort_by     : one of item_name | item_code | cm_given_name | cm_final_offer_inc_vat | free_stock
+    sort_dir    : 'asc' or 'desc'
+    limit       : page size (max 200)
+    offset      : pagination offset
+    in_stock_only: 1 = only items with free_stock > 0
+    min_price   : minimum cm_final_offer_inc_vat (inclusive)
+    max_price   : maximum cm_final_offer_inc_vat (inclusive)
+    barcode     : exact barcode string (searches tabItem Barcode child table)
+    """
+
+    # ── Validate / coerce params ──────────────────────────────────────────────
+    groups = _parse_list_param(item_groups)
+    sort_col = _SORT_COLS.get(str(sort_by), "i.item_name")
+    sort_direction = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
+    limit = max(1, min(int(limit), 200))
+    offset = max(0, int(offset))
+
+    # ── Build WHERE conditions ────────────────────────────────────────────────
+    conditions = []
+    values: list = []
+
+    # Catalogue visibility
+    if not int(show_hidden or 0):
+        conditions.append("i.cm_hidden_from_catalogue = 0")
+
+    # Active / disabled
+    if disabled is not None:
+        conditions.append("i.disabled = %s")
+        values.append(1 if int(disabled) else 0)
+    else:
+        conditions.append("i.disabled = 0")
+
+    # Product type
+    if product_type and str(product_type) != "All":
+        conditions.append("i.cm_product_type = %s")
+        values.append(str(product_type))
+
+    # Exclude configurator-only groups (written in ALL_CAPS — e.g. WARDROBE_DOOR, FURNITURE_BED).
+    # These are internal component groups used by the configurator and should never appear in
+    # the customer-facing catalogue.  Groups with at least one lowercase letter are kept.
+    conditions.append("i.item_group REGEXP BINARY '[a-z]'")
+
+    # Exclude specific groups and brands not shown in the customer catalogue.
+    conditions.append("i.item_group NOT IN ('Lorella Collection', 'Topline Bedrooms')")
+    conditions.append("IFNULL(i.brand, '') NOT IN ('Ares Mobilificio', 'Maresco', 'Topline Mobili')")
+
+    # Item group(s)
+    if groups:
+        placeholders = ", ".join(["%s"] * len(groups))
+        conditions.append(f"i.item_group IN ({placeholders})")
+        values.extend(groups)
+
+    # Brand
+    if supplier_code:
+        conditions.append("i.brand = %s")
+        values.append(str(supplier_code))
+
+    # Free-text search (OR across searchable name fields)
+    if q:
+        like = f"%{q}%"
+        conditions.append(
+            "(i.item_name LIKE %s OR i.item_code LIKE %s"
+            " OR i.cm_given_name LIKE %s OR i.cm_supplier_item_code LIKE %s)"
+        )
+        values.extend([like, like, like, like])
+
+    # Barcode search — exact match on tabItem Barcode child table
+    if barcode and str(barcode).strip():
+        conditions.append(
+            "EXISTS (SELECT 1 FROM `tabItem Barcode` ib"
+            " WHERE ib.parent = i.name AND ib.barcode = %s)"
+        )
+        values.append(str(barcode).strip())
+
+    # Price range filter on customer-facing offer price (inc VAT)
+    if min_price is not None and str(min_price).strip() not in ('', 'None'):
+        conditions.append("i.cm_final_offer_inc_vat >= %s")
+        values.append(float(min_price))
+    if max_price is not None and str(max_price).strip() not in ('', 'None'):
+        conditions.append("i.cm_final_offer_inc_vat <= %s")
+        values.append(float(max_price))
+
+    # In-stock filter — uses the subquery alias resolved at WHERE time
+    if int(in_stock_only or 0):
+        conditions.append("IFNULL(b.free_stock, 0) > 0")
+
+    where = "WHERE " + " AND ".join(conditions) if conditions else ""
+
+    # ── Build SQL fragments ───────────────────────────────────────────────────
+    item_cols_sql = ", ".join(f"i.`{c}`" for c in _ITEM_COLS)
+
+    stock_subquery = """(
+        SELECT item_code,
+               SUM(IFNULL(actual_qty, 0) - IFNULL(reserved_qty, 0)) AS free_stock
+        FROM `tabBin`
+        GROUP BY item_code
+    )"""
+
+    # Count query (no LIMIT/OFFSET, no ORDER BY)
+    count_sql = f"""
+        SELECT COUNT(*) AS total
+        FROM `tabItem` i
+        LEFT JOIN {stock_subquery} b ON b.item_code = i.name
+        {where}
+    """
+
+    # Data query
+    data_sql = f"""
+        SELECT
+            {item_cols_sql},
+            IFNULL(b.free_stock, 0) AS free_stock
+        FROM `tabItem` i
+        LEFT JOIN {stock_subquery} b ON b.item_code = i.name
+        {where}
+        ORDER BY {sort_col} {sort_direction}
+        LIMIT %s OFFSET %s
+    """
+
+    # ── Execute ───────────────────────────────────────────────────────────────
+    count_result = frappe.db.sql(count_sql, values, as_dict=True)
+    total = int(count_result[0].total) if count_result else 0
+
+    rows = frappe.db.sql(data_sql, values + [limit, offset], as_dict=True)
+
+    # Convert Decimal/date values to plain Python types for JSON serialisation
+    for row in rows:
+        row["free_stock"] = float(row.get("free_stock") or 0)
+        if row.get("creation"):
+            row["creation"] = str(row["creation"])
+
+    return {"rows": rows, "total": total}
+
+
+@frappe.whitelist()
+def get_catalogue_groups():
+    """Return distinct item_group values present in the active catalogue."""
+    rows = frappe.db.sql(
+        """
+        SELECT DISTINCT item_group
+        FROM `tabItem`
+        WHERE disabled = 0
+          AND cm_hidden_from_catalogue = 0
+          AND item_group IS NOT NULL
+          AND item_group != ''
+          AND item_group REGEXP BINARY '[a-z]'
+          AND item_group NOT IN ('Lorella Collection', 'Topline Bedrooms')
+        ORDER BY item_group
+        """,
+        as_dict=True,
+    )
+    return [r.item_group for r in rows]
+
+
+@frappe.whitelist()
+def get_catalogue_brands():
+    """Return distinct brand names present in the active catalogue."""
+    rows = frappe.db.sql(
+        """
+        SELECT DISTINCT brand
+        FROM `tabItem`
+        WHERE disabled = 0
+          AND cm_hidden_from_catalogue = 0
+          AND item_group REGEXP BINARY '[a-z]'
+          AND brand IS NOT NULL
+          AND brand != ''
+          AND brand NOT IN ('Ares Mobilificio', 'Maresco', 'Topline Mobili')
+        ORDER BY brand
+        """,
+        as_dict=True,
+    )
+    return [r.brand for r in rows]
+
+
+@frappe.whitelist()
+def get_item_sales_velocity(item_code):
+    """Return sold qty for an item over 30 / 90 / 365 days (from submitted Sales Orders)."""
+    today = date.today()
+    cutoffs = {
+        "qty_30d":  today - timedelta(days=30),
+        "qty_90d":  today - timedelta(days=90),
+        "qty_365d": today - timedelta(days=365),
+    }
+    result = {}
+    for key, cutoff in cutoffs.items():
+        rows = frappe.db.sql(
+            """
+            SELECT IFNULL(SUM(soi.qty), 0) AS total_qty
+            FROM `tabSales Order Item` soi
+            JOIN `tabSales Order` so ON so.name = soi.parent
+            WHERE soi.item_code = %s
+              AND so.docstatus = 1
+              AND so.transaction_date >= %s
+              AND so.status NOT IN ('Cancelled')
+            """,
+            (item_code, str(cutoff)),
+            as_dict=True,
+        )
+        result[key] = float(rows[0].total_qty) if rows else 0.0
+    return result
+
+
+@frappe.whitelist()
+def get_item_price_history(name):
+    """Return a list of pricing-field changes from the Version audit log for an Item."""
+    PRICING_FIELDS = {
+        "cm_rrp_ex_vat", "cm_rrp_inc_vat",
+        "cm_final_offer_inc_vat", "cm_final_offer_ex_vat",
+        "cm_discount_target_percent", "cm_cost_ex_vat",
+    }
+    versions = frappe.db.sql(
+        """
+        SELECT creation, owner, data
+        FROM `tabVersion`
+        WHERE ref_doctype = 'Item' AND docname = %s
+        ORDER BY creation DESC
+        LIMIT 30
+        """,
+        name,
+        as_dict=True,
+    )
+    result = []
+    for v in versions:
+        try:
+            data = json.loads(v.data or "{}")
+            changed = data.get("changed", [])
+            pricing = [
+                {"field": c[0], "old": c[1], "new": c[2]}
+                for c in changed
+                if isinstance(c, (list, tuple)) and len(c) >= 3 and c[0] in PRICING_FIELDS
+            ]
+            if pricing:
+                result.append({
+                    "date": str(v.creation),
+                    "by": v.owner,
+                    "changes": pricing,
+                })
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            pass
+    return result

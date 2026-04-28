@@ -1,0 +1,117 @@
+{
+ "actions": [],
+ "autoname": "autoname",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "header_section",
+  "price_list",
+  "configurator_type",
+  "column_break_header",
+  "valid_from",
+  "valid_to",
+  "tiers_section",
+  "tiers",
+  "matrix_section",
+  "matrix_rows"
+ ],
+ "fields": [
+  {
+   "fieldname": "header_section",
+   "fieldtype": "Section Break",
+   "label": "Price List"
+  },
+  {
+   "fieldname": "price_list",
+   "fieldtype": "Link",
+   "label": "Price List",
+   "options": "Price List",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "configurator_type",
+   "fieldtype": "Select",
+   "label": "Configurator Type",
+   "options": "Night Collection\nLorella Collection\nTopline Bedrooms\nSofa\nMade-to-Order\nOther",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "label": "Valid From",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "valid_to",
+   "fieldtype": "Date",
+   "label": "Valid To",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tiers_section",
+   "fieldtype": "Section Break",
+   "label": "Price Tiers",
+   "description": "Define named tiers with minimum quotation value thresholds. The system picks the highest tier the quote qualifies for. Always include a base tier with min_order_value = 0."
+  },
+  {
+   "fieldname": "tiers",
+   "fieldtype": "Table",
+   "label": "Tiers",
+   "options": "CM Configurator Pricing Tier"
+  },
+  {
+   "fieldname": "matrix_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing Matrix",
+   "description": "One row per combination of tier + dimensions. Use role_name='OUTPUT' for the final configured product price (what goes on the sales document). Other roles are component-level costs for internal reference."
+  },
+  {
+   "fieldname": "matrix_rows",
+   "fieldtype": "Table",
+   "label": "Matrix",
+   "options": "CM Configurator Pricing Matrix"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Casamoderna DMS",
+ "name": "CM Configurator Pricing",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 0,
+   "export": 1,
+   "print": 0,
+   "read": 1,
+   "report": 1,
+   "role": "CasaModerna Product Maintainer",
+   "share": 0,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "configurator_type",
+ "sort_order": "ASC",
+ "track_changes": 1
+}

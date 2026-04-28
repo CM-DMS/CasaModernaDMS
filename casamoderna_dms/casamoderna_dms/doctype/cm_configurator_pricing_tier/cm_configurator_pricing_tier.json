@@ -1,0 +1,39 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "tier_name",
+  "min_order_value_inc_vat"
+ ],
+ "fields": [
+  {
+   "fieldname": "tier_name",
+   "fieldtype": "Data",
+   "label": "Tier Name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Human-readable name, e.g. 'Standard', '3-Piece Set', 'Full Suite'"
+  },
+  {
+   "fieldname": "min_order_value_inc_vat",
+   "fieldtype": "Currency",
+   "label": "Min Order Value (inc VAT)",
+   "reqd": 1,
+   "default": "0",
+   "in_list_view": 1,
+   "description": "Total configured value on the quotation must reach this threshold to activate this tier. Set 0 for the base tier."
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Casamoderna DMS",
+ "name": "CM Configurator Pricing Tier",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "min_order_value_inc_vat",
+ "sort_order": "ASC"
+}

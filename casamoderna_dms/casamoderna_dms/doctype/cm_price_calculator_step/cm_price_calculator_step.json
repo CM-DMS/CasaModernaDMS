@@ -1,0 +1,56 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "label",
+  "step_type",
+  "value",
+  "value2"
+ ],
+ "fields": [
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "label": "Label",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "step_type",
+   "fieldtype": "Select",
+   "label": "Step Type",
+   "reqd": 1,
+   "options": "DISCOUNT_PCT\nINCREASE_PCT\nADD_FIXED\nADD_FIXED_WEIGHTED\nADD_INSTALL_FROM_LM\nMULTIPLY",
+   "in_list_view": 1,
+   "description": "DISCOUNT_PCT: multiply by (1 - value/100). INCREASE_PCT: multiply by (1 + value/100). ADD_FIXED: add value €. ADD_FIXED_WEIGHTED: distribute value € across BOM pieces by cm_weight_factor. ADD_INSTALL_FROM_LM: add (value × LM) + value2. MULTIPLY: multiply running total by value."
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Float",
+   "label": "Value",
+   "reqd": 1,
+   "in_list_view": 1,
+   "precision": "4",
+   "description": "Percentage (for PCT types), fixed €amount (for ADD_FIXED), €/LM rate (for ADD_INSTALL_FROM_LM), or multiplier (for MULTIPLY)."
+  },
+  {
+   "fieldname": "value2",
+   "fieldtype": "Float",
+   "label": "Value 2",
+   "precision": "4",
+   "description": "For ADD_INSTALL_FROM_LM only: fixed € added regardless of LM. Total = (value × LM) + value2."
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Casamoderna DMS",
+ "name": "CM Price Calculator Step",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC"
+}

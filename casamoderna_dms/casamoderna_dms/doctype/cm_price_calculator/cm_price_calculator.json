@@ -1,0 +1,131 @@
+{
+ "actions": [],
+ "autoname": "format:CALC-{calculator_code}-{####}",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "header_section",
+  "calculator_name",
+  "calculator_code",
+  "column_break_header",
+  "requires_lm",
+  "pricing_mechanism",
+  "max_discount_percent",
+  "gozo_surcharge",
+  "notes",
+  "steps_section",
+  "steps"
+ ],
+ "fields": [
+  {
+   "fieldname": "header_section",
+   "fieldtype": "Section Break",
+   "label": "Calculator"
+  },
+  {
+   "fieldname": "calculator_name",
+   "fieldtype": "Data",
+   "label": "Calculator Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "calculator_code",
+   "fieldtype": "Data",
+   "label": "Code",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Short uppercase code, e.g. AXIS, MARESCO_NIGHT, SOFA"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "requires_lm",
+   "fieldtype": "Check",
+   "label": "Requires Linear Metre (LM)",
+   "default": "0",
+   "in_list_view": 1,
+   "description": "When checked the formula can use ADD_INSTALL_FROM_LM steps. The UI will ask for an LM dimension when previewing."
+  },
+  {
+   "fieldname": "pricing_mechanism",
+   "fieldtype": "Select",
+   "label": "Pricing Mechanism",
+   "options": "Supplier Ladder\nConfigurator BOM",
+   "default": "Supplier Ladder",
+   "in_list_view": 1,
+   "description": "Supplier Ladder: shown in the Sales Document price picker. Configurator BOM: used internally by the product configurators (Night Collection, Lorella, etc.) — hidden from the sales picker."
+  },
+  {
+   "fieldname": "max_discount_percent",
+   "fieldtype": "Float",
+   "label": "Max Discount % (floor for sales)",
+   "description": "Maximum % discount sales staff may offer. The floor price = RRP Inc. VAT \u00d7 (1 - this%). Offers below the floor trigger a warning.",
+   "default": "0",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "gozo_surcharge",
+   "fieldtype": "Currency",
+   "label": "Gozo Delivery Surcharge (\u20ac)",
+   "description": "Extra fixed cost added to the weighted distribution total when Gozo delivery is selected in the Night Collection configurator.",
+   "default": "0",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "steps_section",
+   "fieldtype": "Section Break",
+   "label": "Formula Steps",
+   "description": "Steps are applied sequentially to the base cost price to arrive at the selling price."
+  },
+  {
+   "fieldname": "steps",
+   "fieldtype": "Table",
+   "label": "Steps",
+   "options": "CM Price Calculator Step"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Casamoderna DMS",
+ "name": "CM Price Calculator",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 0,
+   "export": 1,
+   "print": 0,
+   "read": 1,
+   "report": 1,
+   "role": "CasaModerna Product Maintainer",
+   "share": 0,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "calculator_name",
+ "sort_order": "ASC",
+ "track_changes": 1
+}

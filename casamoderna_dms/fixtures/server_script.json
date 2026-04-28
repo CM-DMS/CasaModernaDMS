@@ -1,0 +1,21 @@
+[
+ {
+  "allow_guest": 0,
+  "api_method": null,
+  "cron_format": null,
+  "disabled": 1,
+  "docstatus": 0,
+  "doctype": "Server Script",
+  "doctype_event": "Before Validate",
+  "enable_rate_limit": 0,
+  "event_frequency": "All",
+  "modified": "2026-03-03 16:07:05.942047",
+  "module": "Core",
+  "name": "Auto Username - name.surname",
+  "rate_limit_count": 5,
+  "rate_limit_seconds": 86400,
+  "reference_doctype": "User",
+  "script": "def execute():\n    import re\n    import unicodedata\n\n    def _slugify(s: str) -> str:\n        s = (s or \"\").strip()\n        if not s:\n            return \"\"\n        s = unicodedata.normalize(\"NFKD\", s)\n        s = s.encode(\"ascii\", \"ignore\").decode(\"ascii\")\n        s = s.lower()\n        s = re.sub(r\"[^a-z0-9]+\", \".\", s)\n        s = re.sub(r\"\\.+\", \".\", s)\n        return s.strip(\".\")\n\n    if getattr(doc, \"name\", None) in (\"Administrator\", \"Guest\"):\n        return\n\n    if getattr(doc, \"username\", None):\n        return\n\n    first = (getattr(doc, \"first_name\", None) or \"\").strip()\n    last = (getattr(doc, \"last_name\", None) or \"\").strip()\n\n    if first and last:\n        base = f\"{first}.{last}\"\n    else:\n        full = (getattr(doc, \"full_name\", None) or \"\").strip()\n        parts = [p for p in re.split(r\"\\s+\", full) if p]\n        if len(parts) < 2:\n            return\n        base = f\"{parts[0]}.{parts[-1]}\"\n\n    base = _slugify(base)\n    if not base or \".\" not in base:\n        return\n\n    candidate = base\n    i = 2\n    while frappe.db.exists(\"User\", {\"username\": candidate, \"name\": (\"!=\", doc.name)}):\n        candidate = f\"{base}{i}\"\n        i += 1\n\n    doc.username = candidate\n\nexecute()\n",
+  "script_type": "DocType Event"
+ }
+]

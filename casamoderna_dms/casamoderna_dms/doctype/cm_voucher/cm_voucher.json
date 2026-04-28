@@ -1,0 +1,227 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "voucher_details_section",
+  "voucher_code",
+  "status",
+  "column_break_details",
+  "voucher_value",
+  "valid_until",
+  "voucher_source",
+  "parties_section",
+  "purchaser_customer",
+  "purchaser_name",
+  "column_break_parties",
+  "recipient_customer",
+  "recipient_name",
+  "authorization_section",
+  "authorized_by_jason",
+  "authorized_by_brian",
+  "redemption_section",
+  "redeemed_amount",
+  "redeemed_date",
+  "redeemed_against_so",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "voucher_details_section",
+   "fieldtype": "Section Break",
+   "label": "Voucher Details"
+  },
+  {
+   "bold": 1,
+   "fieldname": "voucher_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Voucher Code",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nPending Authorization\nAuthorized\nRejected\nRedeemed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "voucher_value",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Voucher Value",
+   "reqd": 1
+  },
+  {
+   "fieldname": "valid_until",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Valid Until"
+  },
+  {
+   "default": "Customer Purchase",
+   "fieldname": "voucher_source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Source",
+   "options": "Customer Purchase\nCasa Moderna\nDanzah",
+   "reqd": 1
+  },
+  {
+   "fieldname": "parties_section",
+   "fieldtype": "Section Break",
+   "label": "Parties"
+  },
+  {
+   "fieldname": "purchaser_customer",
+   "fieldtype": "Link",
+   "label": "Purchaser Customer",
+   "options": "Customer"
+  },
+  {
+   "fetch_from": "purchaser_customer.customer_name",
+   "fetch_if_empty": 1,
+   "fieldname": "purchaser_name",
+   "fieldtype": "Data",
+   "label": "Purchaser Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_parties",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "recipient_customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Recipient (receives voucher)",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "recipient_customer.customer_name",
+   "fetch_if_empty": 1,
+   "fieldname": "recipient_name",
+   "fieldtype": "Data",
+   "label": "Recipient Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "authorization_section",
+   "fieldtype": "Section Break",
+   "label": "Authorization"
+  },
+  {
+   "default": "0",
+   "fieldname": "authorized_by_jason",
+   "fieldtype": "Check",
+   "label": "Authorized by Jason Falzon",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "authorized_by_brian",
+   "fieldtype": "Check",
+   "label": "Authorized by Brian Borg",
+   "read_only": 1
+  },
+  {
+   "fieldname": "redemption_section",
+   "fieldtype": "Section Break",
+   "label": "Redemption"
+  },
+  {
+   "fieldname": "redeemed_amount",
+   "fieldtype": "Currency",
+   "label": "Redeemed Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "redeemed_date",
+   "fieldtype": "Datetime",
+   "label": "Redeemed Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "redeemed_against_so",
+   "fieldtype": "Data",
+   "label": "Receipt Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "module": "Casamoderna DMS",
+ "name": "CM Voucher",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "CM Super Admin"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 0,
+   "write": 1,
+   "role": "CasaModerna Sales Console"
+  },
+  {
+   "create": 0,
+   "delete": 0,
+   "email": 0,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager"
+  }
+ ],
+ "quick_entry": 0,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "voucher_code",
+ "track_changes": 1
+}

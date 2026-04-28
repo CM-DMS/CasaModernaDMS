@@ -1,0 +1,160 @@
+{
+ "actions": [],
+ "autoname": "POR-.YYYY.-.#####",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "status",
+  "salesperson",
+  "sales_doctype",
+  "doc_name",
+  "section_item",
+  "item_code",
+  "item_name",
+  "column_break_item",
+  "standard_rate",
+  "requested_rate",
+  "section_resolution",
+  "resolved_by",
+  "resolved_at",
+  "consumed",
+  "consumed_at"
+ ],
+ "fields": [
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nApproved\nRejected",
+   "read_only": 1
+  },
+  {
+   "fieldname": "salesperson",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Requested By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_doctype",
+   "fieldtype": "Data",
+   "label": "Document Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "doc_name",
+   "fieldtype": "Data",
+   "label": "Document",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_item",
+   "fieldtype": "Section Break",
+   "label": "Item"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item Code",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_item",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "standard_rate",
+   "fieldtype": "Currency",
+   "label": "Standard Offer Price",
+   "read_only": 1
+  },
+  {
+   "fieldname": "requested_rate",
+   "fieldtype": "Currency",
+   "label": "Requested Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_resolution",
+   "fieldtype": "Section Break",
+   "label": "Resolution"
+  },
+  {
+   "fieldname": "resolved_by",
+   "fieldtype": "Data",
+   "label": "Resolved By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "resolved_at",
+   "fieldtype": "Datetime",
+   "label": "Resolved At",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "consumed",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Consumed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "consumed_at",
+   "fieldtype": "Datetime",
+   "hidden": 1,
+   "label": "Consumed At",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "links": [],
+ "module": "Casamoderna DMS",
+ "name": "CM Price Override Request",
+ "naming_rule": "Expression (old style)",
+ "permissions": [
+  {
+   "create": 1,
+   "read": 1,
+   "write": 0,
+   "role": "CasaModerna Sales Console"
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "write": 0,
+   "role": "Sales Manager"
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "write": 1,
+   "role": "CasaModerna Price Supervisor"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

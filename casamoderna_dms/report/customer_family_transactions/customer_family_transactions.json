@@ -1,0 +1,36 @@
+{
+ "add_total_row": 1,
+ "apply_user_permissions": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "is_standard": "Yes",
+ "module": "CasaModerna Custom",
+ "name": "Customer Family Transactions",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Customer",
+ "report_name": "Customer Family Transactions",
+ "report_type": "Query Report",
+ "query": "SELECT\n\t'Sales Order' as \"Type::110\",\n\tso.name as \"Sales Order:Link/Sales Order:140\",\n\tNULL as \"Sales Invoice:Link/Sales Invoice:140\",\n\tso.customer as \"Customer:Link/Customer:160\",\n\tso.transaction_date as \"Date:Date:100\",\n\tso.base_net_total as \"Net Total:Currency:120\",\n\t0 as \"Outstanding:Currency:120\"\nFROM\n\t`tabSales Order` so\n\tJOIN `tabCustomer` c ON c.name = so.customer\nWHERE\n\tso.docstatus = 1\n\tAND COALESCE(NULLIF(c.cm_root_customer, ''), c.name) = %(root_customer)s\n\tAND (%(from_date)s IS NULL OR so.transaction_date >= %(from_date)s)\n\tAND (%(to_date)s IS NULL OR so.transaction_date <= %(to_date)s)\n\tAND (%(sales_person)s IS NULL OR EXISTS (\n\t\tSELECT 1 FROM `tabSales Team` st\n\t\tWHERE st.parenttype = 'Sales Order' AND st.parent = so.name AND st.sales_person = %(sales_person)s\n\t))\nUNION ALL\nSELECT\n\t'Sales Invoice' as \"Type::110\",\n\tNULL as \"Sales Order:Link/Sales Order:140\",\n\tsi.name as \"Sales Invoice:Link/Sales Invoice:140\",\n\tsi.customer as \"Customer:Link/Customer:160\",\n\tsi.posting_date as \"Date:Date:100\",\n\tsi.base_net_total as \"Net Total:Currency:120\",\n\tsi.outstanding_amount as \"Outstanding:Currency:120\"\nFROM\n\t`tabSales Invoice` si\n\tJOIN `tabCustomer` c ON c.name = si.customer\nWHERE\n\tsi.docstatus = 1\n\tAND COALESCE(NULLIF(c.cm_root_customer, ''), c.name) = %(root_customer)s\n\tAND (%(from_date)s IS NULL OR si.posting_date >= %(from_date)s)\n\tAND (%(to_date)s IS NULL OR si.posting_date <= %(to_date)s)\n\tAND (%(sales_person)s IS NULL OR EXISTS (\n\t\tSELECT 1 FROM `tabSales Team` st\n\t\tWHERE st.parenttype = 'Sales Invoice' AND st.parent = si.name AND st.sales_person = %(sales_person)s\n\t))\nORDER BY\n\t5 asc, 1 asc",
+ "roles": [
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "CasaModerna Sales Console"
+  }
+ ]
+}
