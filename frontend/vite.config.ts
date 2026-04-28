@@ -9,10 +9,9 @@ import tailwindcss from '@tailwindcss/vite'
 const BENCH_URL  = process.env.VITE_BENCH_URL  || 'http://localhost:8001'
 const BENCH_HOST = process.env.VITE_BENCH_HOST || 'cms.local'
 
-export default defineConfig(({ mode }) => ({
-  // Production: served at /dms/ (matching nginx location block)
-  // Dev: served at root so proxy works
-  base: mode === 'development' ? '/' : '/dms/',
+export default defineConfig(({ mode: _mode }) => ({
+  // Served at root on both dev and production (www. owns the whole domain)
+  base: '/',
 
   plugins: [
     react(),
