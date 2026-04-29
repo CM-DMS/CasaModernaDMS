@@ -1,74 +1,33 @@
 /**
- * ProductSelectorModal — search and pick a product (Item) to add as a document line.
- * TypeScript port of V2 ProductSelectorModal.jsx.
+ * ProductSelectorModal — search and pick a CM Product to add as a document line.
+ * Source of truth: tabCM Product (not tabItem).
  */
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { frappe } from '../../api/frappe'
 import { CM } from '../ui/CMClassNames'
 import type { ItemRow } from '../sales/ItemsTable'
+import { productsApi } from '../../api/products'
+import type { CMProductRow } from '../../api/products'
 
-const ITEM_FIELDS = [
-  'name',
-  'item_code',
-  'item_name',
-  'item_group',
-  'stock_uom',
-  'description',
-  'standard_rate',
-  'cm_rrp_inc_vat',
-  'cm_rrp_ex_vat',
-  'cm_final_offer_inc_vat',
-  'cm_final_offer_ex_vat',
-  'cm_cost_ex_vat',
-  'cm_vat_rate_percent',
-  'cm_sqm_per_box',
-  'cm_tiles_per_box',
-  'cm_given_name',
-  'disabled',
-  'cm_product_type',
-  'image',
-]
+// ── Map CM Product → document line ────────────────────────────────────────────
 
-interface FrappeItemRow {
-  name: string
-  item_code: string
-  item_name: string
-  item_group?: string
-  stock_uom?: string
-  description?: string
-  standard_rate?: number
-  cm_rrp_inc_vat?: number
-  cm_rrp_ex_vat?: number
-  cm_final_offer_inc_vat?: number
-  cm_final_offer_ex_vat?: number
-  cm_cost_ex_vat?: number
-  cm_vat_rate_percent?: number
-  cm_sqm_per_box?: number
-  cm_tiles_per_box?: number
-  cm_given_name?: string
-  disabled?: boolean
-  cm_product_type?: string
-  image?: string
-}
-
-function mapToLine(item: FrappeItemRow): Partial<ItemRow> {
-  const vatFactor = 1 + (item.cm_vat_rate_percent || 18) / 100
+function mapToLine(item: CMProductRow): Partial<ItemRow> {
+  const vatRate = item.cm_vat_rate_percent || 18
+  const vatFactor = 1 + vatRate / 100
   const rrpInc = item.cm_rrp_inc_vat || 0
-  const offerInc = item.cm_final_offer_inc_vat || item.standard_rate || 0
   const rrpEx = item.cm_rrp_ex_vat || (rrpInc > 0 ? Math.round((rrpInc / vatFactor) * 100) / 100 : 0)
-  const offerEx =
-    item.cm_final_offer_ex_vat || (offerInc > 0 ? Math.round((offerInc / vatFactor) * 100) / 100 : 0)
+  const offerInc = item.cm_offer_tier1_inc_vat || 0
+  const offerEx = item.cm_offer_tier1_ex_vat || (offerInc > 0 ? Math.round((offerInc / vatFactor) * 100) / 100 : 0)
   return {
-    item_code: item.item_code || item.name,
+    item_code: item.name,
     item_name: item.cm_given_name || item.item_name || '',
-    description: item.description || '',
+    description: '',
     uom: item.stock_uom || 'Unit',
     rate: offerInc,
     cm_rrp_inc_vat: rrpInc,
     cm_rrp_ex_vat: rrpEx,
     cm_final_offer_inc_vat: offerInc,
     cm_final_offer_ex_vat: offerEx,
-    cm_vat_rate_percent: item.cm_vat_rate_percent || 18,
+    cm_vat_rate_percent: vatRate,
     cm_effective_discount_percent: 0,
   }
 }
@@ -82,16 +41,14 @@ function StockBadge({ qty }: { qty?: number }) {
 
 function ProductCard({
   item,
-  stockQty,
   onSelect,
 }: {
-  item: FrappeItemRow
-  stockQty?: number
+  item: CMProductRow
   onSelect: (line: Partial<ItemRow>) => void
 }) {
   const displayName = item.cm_given_name || item.item_name || item.name
-  const offerVal = item.cm_final_offer_inc_vat || item.standard_rate
-  const offer = offerVal ? `€${Number(offerVal).toFixed(2)}` : null
+  const offerInc = item.cm_offer_tier1_inc_vat
+  const offer = offerInc ? `€${Number(offerInc).toFixed(2)}` : null
   const rrp = item.cm_rrp_inc_vat ? `€${Number(item.cm_rrp_inc_vat).toFixed(2)}` : null
 
   return (
@@ -101,19 +58,16 @@ function ProductCard({
       onClick={() => onSelect(mapToLine(item))}
     >
       <div className="flex items-center gap-3">
-        <div className="flex-shrink-0 w-12 h-12 rounded bg-gray-100 overflow-hidden">
-          {item.image ? (
-            <img src={item.image} alt="" className="w-full h-full object-cover" loading="lazy" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-300 text-xl">
-              🏷️
-            </div>
-          )}
+        <div className="flex-shrink-0 w-12 h-12 rounded bg-gray-100 overflow-hidden flex items-center justify-center text-gray-300 text-xl">
+          {item.image
+            ? <img src={item.image} alt="" className="w-full h-full object-cover" loading="lazy" />
+            : '🏷️'
+          }
         </div>
         <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="text-sm font-semibold text-gray-900 truncate">{displayName}</div>
-            <div className="text-[11px] text-gray-500 truncate">{item.item_code}</div>
+            <div className="text-[11px] text-gray-500 truncate">{item.name}</div>
             {item.item_group && (
               <div className="text-[10px] text-gray-400 mt-0.5">{item.item_group}</div>
             )}
@@ -124,7 +78,7 @@ function ProductCard({
               <div className="text-[11px] text-gray-400 line-through">{rrp}</div>
             )}
             <div className="mt-0.5">
-              <StockBadge qty={stockQty} />
+              <StockBadge qty={item.free_stock} />
             </div>
           </div>
         </div>
@@ -143,32 +97,17 @@ export function ProductSelectorModal({ isOpen, onSelect, onClose }: ProductSelec
   const [q, setQ] = useState('')
   const [itemGroup, setItemGroup] = useState('')
   const [groups, setGroups] = useState<string[]>([])
-  const [rows, setRows] = useState<FrappeItemRow[]>([])
+  const [rows, setRows] = useState<CMProductRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAllTypes, setShowAllTypes] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const loadGroups = useCallback(async (allTypes: boolean) => {
+  const loadGroups = useCallback(async (_allTypes: boolean) => {
     try {
-      const filters: any[][] = [
-        ['disabled', '=', 0],
-        ['cm_hidden_from_catalogue', '=', 0],
-      ]
-      if (!allTypes) filters.push(['cm_product_type', '=', 'Primary'])
-      const data = await frappe.call('frappe.client.get_list', {
-        doctype: 'Item',
-        fields: ['item_group'],
-        filters,
-        distinct: 1,
-        limit_page_length: 500,
-        order_by: 'item_group asc',
-      })
-      const names = Array.isArray(data)
-        ? [...new Set(data.map((r: any) => r.item_group).filter(Boolean))].sort()
-        : []
-      setGroups(names as string[])
+      const names = await productsApi.getGroups()
+      setGroups(Array.isArray(names) ? names : [])
     } catch {
       /* ignore */
     }
@@ -178,33 +117,13 @@ export function ProductSelectorModal({ isOpen, onSelect, onClose }: ProductSelec
     setLoading(true)
     setError(null)
     try {
-      const filters: any[][] = [['disabled', '=', 0]]
-      if (group) filters.push(['item_group', '=', group])
-      if (!allTypes) filters.push(['cm_product_type', '=', 'Primary'])
-
-      let data: FrappeItemRow[]
-      if (searchQ.trim()) {
-        data = await frappe.call('frappe.client.get_list', {
-          doctype: 'Item',
-          fields: ITEM_FIELDS,
-          or_filters: [
-            ['item_code', 'like', `%${searchQ}%`],
-            ['item_name', 'like', `%${searchQ}%`],
-            ['cm_given_name', 'like', `%${searchQ}%`],
-          ],
-          filters,
-          limit_page_length: 40,
-          order_by: 'item_name asc',
-        })
-      } else {
-        data = await frappe.getList('Item', {
-          fields: ITEM_FIELDS,
-          filters,
-          limit: 40,
-          order_by: 'item_name asc',
-        })
-      }
-      setRows(Array.isArray(data) ? data : [])
+      const result = await productsApi.search({
+        q: searchQ,
+        itemGroups: group ? [group] : [],
+        productType: allTypes ? '' : 'Primary',
+        limit: 40,
+      })
+      setRows(result.rows)
     } catch (err: any) {
       setError(err.message || 'Search failed')
       setRows([])

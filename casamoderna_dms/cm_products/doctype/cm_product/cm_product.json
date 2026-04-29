@@ -15,6 +15,7 @@
   "cm_given_name",
   "cm_description_line_1",
   "cm_description_line_2",
+  "image",
   "status_section",
   "disabled",
   "cm_hidden_from_catalogue",
@@ -121,6 +122,11 @@
    "fieldname": "cm_description_line_2",
    "fieldtype": "Data",
    "label": "Description Line 2"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Product Image"
   },
   {
    "fieldname": "status_section",

@@ -24,6 +24,8 @@ _CM_PRODUCT_COLS = [
     "cm_supplier_name", "cm_supplier_code",
     "cm_rrp_ex_vat", "cm_rrp_inc_vat",
     "cm_offer_tier1_inc_vat", "cm_offer_tier1_ex_vat", "cm_offer_tier1_discount_pct",
+    "cm_vat_rate_percent",
+    "image",
     "is_stock_item", "creation",
 ]
 

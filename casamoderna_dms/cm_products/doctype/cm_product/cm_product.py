@@ -217,6 +217,7 @@ class CMProduct(Document):
 		item.cm_final_offer_inc_vat    = self.cm_offer_tier1_inc_vat or 0
 		item.cm_discount_target_percent = self.cm_offer_tier1_discount_pct or 0
 		item.cm_pricing_rounding_mode   = "whole_euro_roundup"
+		item.image                       = self.image or None
 
 		# Ensure the UOM conversion table has the stock UOM listed, otherwise
 		# ERPNext raises "UOM <uom> not found in Item" on transaction validation.

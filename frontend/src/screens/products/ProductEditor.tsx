@@ -34,6 +34,7 @@ const BLANK_DOC: Record<string, unknown> = {
   cm_given_name: '',
   cm_description_line_1: '',
   cm_description_line_2: '',
+  image: '',
   item_group: '',
   stock_uom: 'EA',
   is_stock_item: 1,
@@ -291,6 +292,64 @@ export function ProductEditor() {
                 onChange={(e) => set('cm_description_line_2', e.target.value)}
                 placeholder="e.g. collection / series"
               />
+            </CMField>
+          </div>
+
+          <div className="sm:col-span-2">
+            <CMField label="Product Image">
+              <div className="flex items-center gap-4">
+                {doc.image && (
+                  <img
+                    src={String(doc.image)}
+                    alt="Product"
+                    className="w-20 h-20 rounded object-cover border border-gray-200 flex-shrink-0"
+                  />
+                )}
+                <div className="flex flex-col gap-1.5 min-w-0">
+                  <input
+                    type="url"
+                    className={CM.input}
+                    value={String(doc.image ?? '')}
+                    onChange={(e) => set('image', e.target.value)}
+                    placeholder="Paste image URL or upload below…"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const fd = new FormData()
+                      fd.append('file', file)
+                      fd.append('is_private', '0')
+                      fd.append('doctype', 'CM Product')
+                      if (doc.name) fd.append('docname', String(doc.name))
+                      try {
+                        const resp = await fetch('/api/method/upload_file', {
+                          method: 'POST',
+                          headers: { 'X-Frappe-CSRF-Token': (window as any).csrf_token || '' },
+                          body: fd,
+                        })
+                        const json = await resp.json()
+                        const url = json?.message?.file_url
+                        if (url) set('image', url)
+                      } catch {
+                        /* ignore upload errors silently */
+                      }
+                    }}
+                  />
+                  {doc.image && (
+                    <button
+                      type="button"
+                      className="text-xs text-red-500 hover:text-red-700 text-left"
+                      onClick={() => set('image', '')}
+                    >
+                      Remove image
+                    </button>
+                  )}
+                </div>
+              </div>
             </CMField>
           </div>
 

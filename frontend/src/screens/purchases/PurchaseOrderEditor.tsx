@@ -7,6 +7,7 @@ import {
 import { StatusBadge } from '../../components/shared/StatusBadge'
 import { Typeahead } from '../../components/sales/Typeahead'
 import { ProductSelectorModal } from '../../components/products/ProductSelectorModal'
+import { productsApi } from '../../api/products'
 import { usePermissions } from '../../auth/PermissionsProvider'
 
 interface PoItem {
@@ -107,10 +108,10 @@ export function PurchaseOrderEditor() {
     const row = {
       ...blankItem(),
       item_code: product.item_code || '',
-      item_name: product.cm_supplier_item_name || product.item_name || '',
-      cm_supplier_item_code: product.cm_supplier_item_code || '',
-      description: product.cm_supplier_variant_description || product.description || '',
-      uom: product.stock_uom || 'Unit',
+      item_name: product.item_name || '',
+      cm_supplier_item_code: '',
+      description: product.description || '',
+      uom: product.uom || 'Unit',
       qty: 1,
       schedule_date: (doc.schedule_date as string) || '',
     }
@@ -382,30 +383,21 @@ export function PurchaseOrderEditor() {
                           value={row.item_code || ''}
                           displayValue={row.item_name || row.item_code || ''}
                           onSearch={(q) =>
-                            frappe.call('frappe.client.get_list', {
-                              doctype: 'Item',
-                              fields: ['name', 'item_code', 'item_name', 'stock_uom',
-                                'cm_supplier_item_name', 'cm_supplier_item_code', 'cm_supplier_variant_description'],
-                              or_filters: [
-                                ['item_name', 'like', `%${q}%`],
-                                ['item_code', 'like', `%${q}%`],
-                                ['cm_supplier_item_name', 'like', `%${q}%`],
-                                ['cm_supplier_item_code', 'like', `%${q}%`],
-                              ],
-                              ...(doc.supplier_name
-                                ? { filters: [['cm_supplier_name', '=', doc.supplier_name]] }
-                                : {}),
-                              limit_page_length: 15,
-                            })
+                            productsApi.search({
+                              q,
+                              ...(doc.supplier_name ? { supplierName: String(doc.supplier_name) } : {}),
+                              productType: '',
+                              limit: 15,
+                            }).then((r) => r.rows)
                           }
-                          getLabel={(r: any) => r.cm_supplier_item_name || r.item_name || r.item_code}
-                          getValue={(r: any) => r.item_code}
+                          getLabel={(r: any) => r.cm_given_name || r.item_name || r.name}
+                          getValue={(r: any) => r.name}
                           onChange={(val, itemRow: any) =>
                             handleItemChange(idx, {
                               item_code: val,
-                              item_name: itemRow?.cm_supplier_item_name || itemRow?.item_name || '',
-                              cm_supplier_item_code: itemRow?.cm_supplier_item_code || '',
-                              description: itemRow?.cm_supplier_variant_description || '',
+                              item_name: itemRow?.cm_given_name || itemRow?.item_name || '',
+                              cm_supplier_item_code: '',
+                              description: '',
                               uom: itemRow?.stock_uom || row.uom || '',
                             })
                           }

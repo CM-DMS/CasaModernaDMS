@@ -26,6 +26,8 @@ export interface CMProductRow {
   cm_offer_tier1_inc_vat?: number
   cm_offer_tier1_ex_vat?: number
   cm_offer_tier1_discount_pct?: number
+  cm_vat_rate_percent?: number
+  image?: string
   is_stock_item?: 0 | 1
   free_stock?: number
   creation?: string
