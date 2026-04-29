@@ -22,6 +22,15 @@ import { CM } from '../../components/ui/CMClassNames'
 import { CMField, CMSection, CMButton, ErrorBanner, Spinner } from '../../components/ui/CMComponents'
 import { fmtDate } from '../../utils/pricing'
 import { usePermissions } from '../../auth/PermissionsProvider'
+import { Typeahead } from '../../components/sales/Typeahead'
+import { DocAttachments } from '../../components/sales/DocAttachments'
+import { TilesCalculatorModal } from '../../components/calculators/TilesCalculatorModal'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore — JSX component ported from V2
+import { ConfiguratorModal } from '../../components/configurators/ConfiguratorModal'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore — JSX component ported from V2
+import { SupplierPriceModal } from '../../components/sales/SupplierPriceModal'
 
 /* ── Constants ──────────────────────────────────────────────────────────────── */
 
@@ -213,6 +222,13 @@ export function SalesDocEditor({
   const [cancelReason, setCancelReason] = useState('')
   const [cancellingDraft, setCancellingDraft] = useState(false)
   const [showDnQtyModal, setShowDnQtyModal] = useState(false)
+  // Configurator / Calc modals
+  const [showConfigurator, setShowConfigurator] = useState(false)
+  const [cfgJumpTo, setCfgJumpTo] = useState<string | null>(null)
+  const [showTilesCalc, setShowTilesCalc] = useState(false)
+  const [tilesLine, setTilesLine] = useState<number | null>(null)
+  const [calcModalRow, setCalcModalRow] = useState<number | null>(null)
+  const [pendingFreeTextCalc, setPendingFreeTextCalc] = useState<Partial<ItemRow> | null>(null)
 
   const saveInProgressRef = useRef(false)
 
@@ -288,6 +304,38 @@ export function SalesDocEditor({
     })
     setDirty(true)
   }, [])
+
+  /* ── Configurator built ── */
+  const handleConfiguratorBuilt = useCallback(
+    (config: Record<string, unknown>) => {
+      const row: ItemRow = {
+        ...(blankItem(doctype) as ItemRow),
+        item_code: String(config.item_code || (config.type === 'SOFA' ? 'CONFIGURED-SOFA' : 'CONFIGURED-BED')),
+        item_name: String(config.description || config.title || 'Configured Product'),
+        qty: 1,
+        uom: 'Nos',
+        rate: Number(config.total_inc_vat || config.price || 0),
+        cm_configurator_meta: JSON.stringify(config),
+      }
+      setDoc((prev) => ({ ...prev, items: [...((prev.items as ItemRow[]) || []), row] }))
+      setDirty(true)
+    },
+    [doctype],
+  )
+
+  /* ── Payment milestone ── */
+  const handleMilestone = useCallback(
+    (field: string, value: string) => {
+      const grandTotal = Number((doc as any).grand_total || 0)
+      const onOrder = field === 'cm_payment_on_order' ? Number(value) : Number((doc as any).cm_payment_on_order || 0)
+      const onSurvey = field === 'cm_payment_on_survey' ? Number(value) : Number((doc as any).cm_payment_on_survey || 0)
+      const balance = Math.max(0, grandTotal - onOrder - onSurvey)
+      const updates: Record<string, unknown> = { [field]: value }
+      if (field !== 'cm_payment_on_delivery') updates.cm_payment_on_delivery = balance
+      patch(updates)
+    },
+    [doc, patch],
+  )
 
   const handleAddSeparator = useCallback(() => {
     setDoc((prev) => ({
@@ -866,16 +914,7 @@ export function SalesDocEditor({
                   </CMField>
                 )}
 
-                {/* Sales Person */}
-                <CMField label="Sales Person">
-                  <input
-                    className={CM.input}
-                    value={(doc.cm_sales_person as string) || ''}
-                    onChange={(e) => patch({ cm_sales_person: e.target.value })}
-                    disabled={readOnly}
-                    placeholder="Sales person…"
-                  />
-                </CMField>
+                {/* Sales Person — moved to Document Info panel */}
               </div>
 
               {/* Customer B split */}
@@ -983,14 +1022,28 @@ export function SalesDocEditor({
                   <CMButton variant="ghost" onClick={handleAddRow}>
                     + Blank Row
                   </CMButton>
+                  <CMButton variant="ghost" onClick={() => { setCfgJumpTo(null); setShowConfigurator(true) }}>
+                    ⚙ Configure Product
+                  </CMButton>
+                  <CMButton variant="ghost" onClick={() => setCalcModalRow(-1)}>
+                    Price Calc
+                  </CMButton>
+                  <CMButton variant="ghost" onClick={() => { setTilesLine(null); setShowTilesCalc(true) }}>
+                    📐 Tiles Calc
+                  </CMButton>
                 </div>
+              )}
+              {!readOnly && (
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Totals are computed server-side after Save.
+                </p>
               )}
             </CMSection>
 
             {/* Notes & Terms */}
             <CMSection title="Notes & Terms">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <CMField label="Internal Notes">
+              <div className="space-y-3">
+                <CMField label="Notes (visible on document)">
                   <textarea
                     className={CM.textarea}
                     rows={3}
@@ -1000,7 +1053,7 @@ export function SalesDocEditor({
                     placeholder="Notes visible to staff only…"
                   />
                 </CMField>
-                <CMField label="Terms & Conditions">
+                <CMField label="Payment Terms &amp; Conditions">
                   <textarea
                     className={CM.textarea}
                     rows={3}
@@ -1102,10 +1155,68 @@ export function SalesDocEditor({
                   </div>
                 )}
               </div>
+              {/* Sales Person */}
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <Typeahead<{ name: string; sales_person_name: string }>
+                  label="Sales Person"
+                  value={(doc.cm_sales_person as string) || ''}
+                  disabled={readOnly}
+                  placeholder="Search sales person…"
+                  onSearch={async (q) => {
+                    const rows: Array<{ name: string; sales_person_name: string }> = await frappe.call(
+                      'casamoderna_dms.session_api.get_sales_persons', {},
+                    )
+                    const lower = q.toLowerCase()
+                    return (rows || []).filter(
+                      (r) =>
+                        r.name.toLowerCase().includes(lower) ||
+                        r.sales_person_name.toLowerCase().includes(lower),
+                    )
+                  }}
+                  getLabel={(r) => r.sales_person_name || r.name}
+                  getValue={(r) => r.name}
+                  onChange={(val) => patch({ cm_sales_person: val })}
+                />
+              </div>
             </CMSection>
 
             {/* Totals */}
             <TotalsPanel doc={doc as any} />
+
+            {/* Payment Schedule — Quotation, Sales Order, Sales Invoice only */}
+            {(doctype === 'Quotation' || doctype === 'Sales Order' || doctype === 'Sales Invoice') && (
+              <CMSection title="Payment Schedule">
+                <div className="space-y-2 text-xs">
+                  {[
+                    ['cm_payment_on_order', 'On Order'],
+                    ['cm_payment_on_survey', 'On Survey'],
+                    ['cm_payment_on_delivery', 'On Delivery'],
+                  ].map(([field, label]) => {
+                    const grandTotal = Number((doc as any).grand_total || 0)
+                    const amount = Number((doc as any)[field] || 0)
+                    const pct = grandTotal > 0 ? Math.round((amount / grandTotal) * 100) : 0
+                    return (
+                      <div key={field} className="flex items-center gap-2">
+                        <label className="w-24 shrink-0 text-gray-500">{label}</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className={CM.input + ' flex-1'}
+                          value={(doc as any)[field] ?? ''}
+                          onChange={(e) => handleMilestone(field, e.target.value)}
+                          disabled={readOnly || field === 'cm_payment_on_delivery'}
+                          placeholder="€"
+                        />
+                        {grandTotal > 0 && (
+                          <span className="text-gray-400 shrink-0 w-10 text-right">{pct}%</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </CMSection>
+            )}
 
             {/* Save shortcut */}
             {!readOnly && (
@@ -1120,6 +1231,22 @@ export function SalesDocEditor({
             )}
           </div>
         </div>
+
+        {/* Attachments — full width */}
+        <details className="group" open={false}>
+          <summary className="cursor-pointer select-none list-none flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+            <span className="group-open:hidden">▶</span>
+            <span className="hidden group-open:inline">▼</span>
+            Attachments
+          </summary>
+          <div className="mt-2 rounded-lg border border-gray-200 bg-white p-3">
+            <DocAttachments
+              doctype={doctype}
+              docname={doc.name as string | null}
+              readOnly={readOnly}
+            />
+          </div>
+        </details>
       </div>
 
       {/* ── Modals ── */}
@@ -1140,8 +1267,15 @@ export function SalesDocEditor({
       />
       <FreeTextItemModal
         isOpen={showFreeText}
-        onAdd={handleFreeTextAdd}
-        onClose={() => setShowFreeText(false)}
+        initialValues={pendingFreeTextCalc ? {
+          rrp: Number((pendingFreeTextCalc as any).cm_rrp_inc_vat || 0) || undefined,
+          offer: Number((pendingFreeTextCalc as any).rate || 0) || undefined,
+        } : null}
+        onAdd={(product) => {
+          handleFreeTextAdd(product)
+          setPendingFreeTextCalc(null)
+        }}
+        onClose={() => { setShowFreeText(false); setPendingFreeTextCalc(null) }}
       />
 
       {/* Cancel modal */}
@@ -1193,6 +1327,48 @@ export function SalesDocEditor({
           onCreated={(dnDoc) => {
             setShowDnQtyModal(false)
             navigate(`/sales/delivery-notes/${encodeURIComponent(dnDoc.name)}`)
+          }}
+        />
+      )}
+
+      {/* Tiles calculator */}
+      <TilesCalculatorModal
+        isOpen={showTilesCalc || tilesLine !== null}
+        onClose={() => { setShowTilesCalc(false); setTilesLine(null) }}
+        line={tilesLine !== null ? (((doc.items as ItemRow[]) || [])[tilesLine] ?? null) as any : null}
+        onApply={tilesLine !== null ? ({ sqm, meta }: { qty: number; sqm: number; meta: unknown }) => {
+          handleItemChange(tilesLine!, { qty: sqm, cm_tiles_calc_meta: JSON.stringify(meta) } as any)
+          setTilesLine(null)
+        } : undefined}
+      />
+
+      {/* Configurator */}
+      <ConfiguratorModal
+        isOpen={showConfigurator}
+        onClose={() => { setShowConfigurator(false); setCfgJumpTo(null) }}
+        onBuilt={handleConfiguratorBuilt}
+        jumpTo={cfgJumpTo}
+      />
+
+      {/* Supplier price / Price Calc */}
+      {calcModalRow !== null && (
+        <SupplierPriceModal
+          rowIdx={calcModalRow}
+          initialRow={calcModalRow >= 0 ? (((doc.items as ItemRow[]) || [])[calcModalRow] || {}) : {}}
+          onApply={(changes: Partial<ItemRow>) => {
+            if (calcModalRow >= 0) {
+              handleItemChange(calcModalRow, changes)
+            } else {
+              setPendingFreeTextCalc(changes)
+              setShowFreeText(true)
+            }
+            setCalcModalRow(null)
+          }}
+          onClose={() => setCalcModalRow(null)}
+          onOpenConfigurator={(jumpTo: string) => {
+            setCalcModalRow(null)
+            setCfgJumpTo(jumpTo)
+            setShowConfigurator(true)
           }}
         />
       )}
