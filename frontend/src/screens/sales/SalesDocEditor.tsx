@@ -22,9 +22,14 @@ import { CM } from '../../components/ui/CMClassNames'
 import { CMField, CMSection, CMButton, ErrorBanner, Spinner } from '../../components/ui/CMComponents'
 import { fmtDate } from '../../utils/pricing'
 import { usePermissions } from '../../auth/PermissionsProvider'
+import { useAuth } from '../../auth/AuthProvider'
 import { Typeahead } from '../../components/sales/Typeahead'
 import { DocAttachments } from '../../components/sales/DocAttachments'
 import { TilesCalculatorModal } from '../../components/calculators/TilesCalculatorModal'
+import { EmailDocumentModal } from '../../components/sales/EmailDocumentModal'
+import { PriceOverrideRequestModal } from '../../components/sales/PriceOverrideRequestModal'
+import { DocumentHistory } from '../../components/sales/DocumentHistory'
+import { AdvanceAllocationWidget } from '../../components/sales/AdvanceAllocationWidget'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — JSX component ported from V2
 import { ConfiguratorModal } from '../../components/configurators/ConfiguratorModal'
@@ -204,6 +209,7 @@ export function SalesDocEditor({
   const location = useLocation()
   const navigate = useNavigate()
   const { can } = usePermissions()
+  const { user } = useAuth()
 
   const [doc, setDoc] = useState<Record<string, unknown>>(
     () => (location.state as any)?.doc || blankDoc(doctype),
@@ -212,6 +218,9 @@ export function SalesDocEditor({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
+
+  // Customer outstanding balance (null = not loaded, undefined = loading, 0+ = amount)
+  const [outstanding, setOutstanding] = useState<number | null | undefined>(null)
 
   // Modals
   const [showCustomer, setShowCustomer] = useState(false)
@@ -222,6 +231,10 @@ export function SalesDocEditor({
   const [cancelReason, setCancelReason] = useState('')
   const [cancellingDraft, setCancellingDraft] = useState(false)
   const [showDnQtyModal, setShowDnQtyModal] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  // Price override approval
+  const [showOverrideModal, setShowOverrideModal] = useState(false)
+  const [pendingCleanItems, setPendingCleanItems] = useState<ItemRow[] | null>(null)
   // Configurator / Calc modals
   const [showConfigurator, setShowConfigurator] = useState(false)
   const [cfgJumpTo, setCfgJumpTo] = useState<string | null>(null)
@@ -252,6 +265,29 @@ export function SalesDocEditor({
       .catch((err: Error) => setError(err.message || 'Failed to load document'))
       .finally(() => setLoading(false))
   }, [doctype, name, isNew]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── Customer outstanding balance ── */
+  const customerKey = doc[partyField] as string | undefined
+  useEffect(() => {
+    if (!customerKey) { setOutstanding(null); return }
+    setOutstanding(undefined) // loading indicator
+    const today = new Date().toISOString().slice(0, 10)
+    frappe.callGet('erpnext.accounts.utils.get_balance_on', {
+      party_type: 'Customer',
+      party: customerKey,
+      date: today,
+      in_account_currency: 1,
+    }).then((res: any) => {
+      const bal = Number((res?.message ?? res) || 0)
+      setOutstanding(bal)
+    }).catch(() => setOutstanding(null))
+  }, [customerKey])
+
+  /* ── Auto-default salesperson to logged-in user ── */
+  useEffect(() => {
+    if (!user?.sales_person) return
+    setDoc((d) => (d.cm_sales_person ? d : { ...d, cm_sales_person: user.sales_person }))
+  }, [user?.sales_person])
 
   /* ── Helpers ── */
   const patch = useCallback((updates: Record<string, unknown>) => {
@@ -476,6 +512,18 @@ export function SalesDocEditor({
       setError(
         `UOM is required for: ${labels || 'one or more items'}. Re-select the item or use Add Product.`,
       )
+      return
+    }
+
+    // Check for below-floor items that need supervisor approval before saving.
+    const belowFloor = cleanItems.filter((r) => {
+      const floor = Number(r.cm_final_offer_inc_vat)
+      return floor > 0 && Number(r.rate) < floor
+    })
+    if (belowFloor.length > 0) {
+      saveInProgressRef.current = false
+      setPendingCleanItems(cleanItems)
+      setShowOverrideModal(true)
       return
     }
 
@@ -767,6 +815,10 @@ export function SalesDocEditor({
           if (fmt && doc.name) openPrintWindow(doctype, doc.name as string, fmt)
           return
         }
+        case ACTION_IDS.EMAIL: {
+          setShowEmailModal(true)
+          return
+        }
         default:
           break
       }
@@ -1007,6 +1059,7 @@ export function SalesDocEditor({
                 onRemoveRow={handleRemoveRow}
                 onMoveUp={handleMoveUp}
                 onMoveDown={handleMoveDown}
+                onTilesCalc={(idx) => setTilesLine(idx)}
               />
               {!readOnly && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -1154,6 +1207,36 @@ export function SalesDocEditor({
                     <span className="text-gray-700">{doc.modified_by as string}</span>
                   </div>
                 )}
+                {doctype === 'Sales Order' && doc.cm_confirmed_by && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Confirmed by</span>
+                    <span className="text-gray-700">{doc.cm_confirmed_by as string}</span>
+                  </div>
+                )}
+                {doctype === 'Sales Order' && doc.cm_confirmed_at && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Confirmed at</span>
+                    <span className="text-gray-700">{fmtDate(doc.cm_confirmed_at as string)}</span>
+                  </div>
+                )}
+                {customerKey && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Outstanding</span>
+                    {outstanding === undefined ? (
+                      <span className="text-gray-400">Loading…</span>
+                    ) : outstanding === null ? null : outstanding === 0 ? (
+                      <span className="text-gray-400">None</span>
+                    ) : outstanding > 0 ? (
+                      <span className="font-semibold text-red-600">
+                        €{outstanding.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} overdue
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-emerald-600">
+                        €{Math.abs(outstanding).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} credit
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               {/* Sales Person */}
               <div className="mt-3 pt-3 border-t border-gray-100">
@@ -1229,6 +1312,20 @@ export function SalesDocEditor({
                 {saving ? 'Saving…' : 'Save'}
               </CMButton>
             )}
+
+            {/* Received Deposits — allocate SO advance payments to this SI */}
+            {doctype === 'Sales Invoice' && doc.docstatus === 0 && doc.name && !isNew && (
+              <CMSection title="Received Deposits">
+                <AdvanceAllocationWidget
+                  siName={doc.name as string}
+                  onApplied={() => {
+                    frappe.getDoc<Record<string, unknown>>(doctype, doc.name as string)
+                      .then((d) => { setDoc(d); setDirty(false) })
+                      .catch(() => {})
+                  }}
+                />
+              </CMSection>
+            )}
           </div>
         </div>
 
@@ -1247,6 +1344,20 @@ export function SalesDocEditor({
             />
           </div>
         </details>
+
+        {/* Document History — full width, below Attachments */}
+        {doc.name && !isNew && (
+          <details className="group">
+            <summary className="cursor-pointer select-none list-none flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+              <span className="group-open:hidden">▶</span>
+              <span className="hidden group-open:inline">▼</span>
+              Document History
+            </summary>
+            <div className="mt-2 rounded-lg border border-gray-200 bg-white p-3">
+              <DocumentHistory doctype={doctype} docName={doc.name as string} />
+            </div>
+          </details>
+        )}
       </div>
 
       {/* ── Modals ── */}
@@ -1372,6 +1483,65 @@ export function SalesDocEditor({
           }}
         />
       )}
+
+      {/* Price override approval */}
+      <PriceOverrideRequestModal
+        isOpen={showOverrideModal}
+        salesDoctype={doctype}
+        docName={(doc.name as string) || null}
+        belowFloorItems={(pendingCleanItems || []).filter((r) => {
+          const floor = Number(r.cm_final_offer_inc_vat)
+          return floor > 0 && Number(r.rate) < floor
+        })}
+        onAllApproved={async (requestNames) => {
+          setShowOverrideModal(false)
+          setSaving(true)
+          setError(null)
+          try {
+            const res: any = await frappe.call(
+              'casamoderna_dms.price_override_api.save_doc_with_approvals',
+              {
+                doctype,
+                doc_json: JSON.stringify({
+                  ...doc,
+                  items: pendingCleanItems,
+                  taxes_and_charges: doc.taxes_and_charges || 'VAT 18% (MT) - CM',
+                }),
+                request_names_json: JSON.stringify(requestNames),
+              },
+            )
+            const savedDoc = res?.message ?? res
+            setDoc(savedDoc)
+            setDirty(false)
+            onSaved?.(savedDoc)
+          } catch (err: any) {
+            setError(err.message || 'Save with approvals failed')
+          } finally {
+            setSaving(false)
+            setPendingCleanItems(null)
+          }
+        }}
+        onRejected={() => {
+          setShowOverrideModal(false)
+          setPendingCleanItems(null)
+          setError('Save cancelled — price override was rejected by the supervisor.')
+        }}
+        onClose={() => {
+          setShowOverrideModal(false)
+          setPendingCleanItems(null)
+        }}
+      />
+
+      {/* Email document */}
+      <EmailDocumentModal
+        isOpen={showEmailModal}
+        doctype={doctype}
+        docName={doc.name as string}
+        printFormat={PRINT_FORMAT[doctype]}
+        recipientEmail={(doc.contact_email as string) || ''}
+        customerName={customerName}
+        onClose={() => setShowEmailModal(false)}
+      />
     </div>
   )
 }

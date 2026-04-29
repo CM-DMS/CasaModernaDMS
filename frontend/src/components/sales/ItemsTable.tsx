@@ -276,6 +276,7 @@ function EditableRow({
   onRemove,
   onMoveUp,
   onMoveDown,
+  onTilesCalc,
   isFirst,
   isLast,
   sofaConfigMap,
@@ -288,6 +289,8 @@ function EditableRow({
   onRemove?: (idx: number) => void
   onMoveUp?: (idx: number) => void
   onMoveDown?: (idx: number) => void
+  onTilesCalc?: (idx: number) => void
+  onTilesCalc?: (idx: number) => void
   isFirst: boolean
   isLast: boolean
   sofaConfigMap?: Record<string, { sofa_image_url?: string }>
@@ -494,6 +497,16 @@ function EditableRow({
           >
             ▼
           </button>
+          {Number(row.cm_sqm_per_box) > 0 && (
+            <button
+              type="button"
+              onClick={() => onTilesCalc?.(idx)}
+              className="text-blue-400 hover:text-blue-600 transition-colors px-0.5 text-[10px]"
+              title="Tiles calculator for this row"
+            >
+              📐
+            </button>
+          )}
         </div>
       </td>
     </tr>
@@ -519,6 +532,9 @@ export interface ItemRow {
   cm_effective_discount_percent?: number
   cm_vat_rate_percent?: number
   cm_custom_line_ref?: string
+  cm_sqm_per_box?: number
+  cm_tiles_calc_meta?: string
+  [key: string]: unknown
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -532,6 +548,7 @@ interface ItemsTableProps {
   onRemoveRow?: (idx: number) => void
   onMoveUp?: (idx: number) => void
   onMoveDown?: (idx: number) => void
+  onTilesCalc?: (idx: number) => void
 }
 
 export function ItemsTable({
@@ -543,6 +560,7 @@ export function ItemsTable({
   onRemoveRow,
   onMoveUp,
   onMoveDown,
+  onTilesCalc,
 }: ItemsTableProps) {
   const COLS = readOnly ? 8 : 9
   const vatLabel = showIncVat ? 'inc. VAT' : 'ex. VAT'
@@ -599,6 +617,7 @@ export function ItemsTable({
                     onRemove={onRemoveRow}
                     onMoveUp={onMoveUp}
                     onMoveDown={onMoveDown}
+                    onTilesCalc={onTilesCalc}
                     isFirst={idx === 0}
                     isLast={idx === items.length - 1}
                     COLS={COLS}
