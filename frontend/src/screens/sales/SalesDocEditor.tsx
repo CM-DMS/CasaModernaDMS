@@ -873,9 +873,9 @@ export function SalesDocEditor({
       )}
 
       <div className="flex-1 p-3 space-y-4">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-[10fr_3fr] gap-4">
           {/* ── Left column ── */}
-          <div className="xl:col-span-2 space-y-4">
+          <div className="space-y-4">
             {/* Header card */}
             <CMSection title="Header">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
