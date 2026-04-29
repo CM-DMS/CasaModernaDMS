@@ -231,6 +231,89 @@ def get_dashboard_kpis():
 		as_dict=True,
 	)
 
+	# ── MTD / YTD sales ───────────────────────────────────────────────────
+
+	month_start = frappe.utils.get_first_day(today).strftime("%Y-%m-%d")
+	year_start  = today[:4] + "-01-01"
+
+	# First day of last month / last day of last month
+	last_month_end   = frappe.utils.add_days(month_start, -1)
+	last_month_start = frappe.utils.get_first_day(last_month_end).strftime("%Y-%m-%d")
+
+	mtd_orders = frappe.db.sql(
+		"""
+		SELECT COUNT(*) AS cnt, IFNULL(SUM(grand_total), 0) AS total
+		FROM `tabSales Order`
+		WHERE docstatus = 1
+		  AND transaction_date >= %s AND transaction_date <= %s
+		""",
+		(month_start, today),
+		as_dict=True,
+	)[0]
+
+	mtd_invoiced = frappe.db.sql(
+		"""
+		SELECT IFNULL(SUM(grand_total), 0) AS total
+		FROM `tabSales Invoice`
+		WHERE docstatus = 1 AND is_return = 0
+		  AND posting_date >= %s AND posting_date <= %s
+		""",
+		(month_start, today),
+		as_list=True,
+	)[0][0]
+
+	mtd_quotations = frappe.db.sql(
+		"""
+		SELECT COUNT(*) AS cnt, IFNULL(SUM(grand_total), 0) AS total
+		FROM `tabQuotation`
+		WHERE docstatus IN (0, 1)
+		  AND transaction_date >= %s AND transaction_date <= %s
+		""",
+		(month_start, today),
+		as_dict=True,
+	)[0]
+
+	ytd_order_value = frappe.db.sql(
+		"""
+		SELECT IFNULL(SUM(grand_total), 0)
+		FROM `tabSales Order`
+		WHERE docstatus = 1
+		  AND transaction_date >= %s AND transaction_date <= %s
+		""",
+		(year_start, today),
+		as_list=True,
+	)[0][0]
+
+	last_month_value = frappe.db.sql(
+		"""
+		SELECT IFNULL(SUM(grand_total), 0)
+		FROM `tabSales Order`
+		WHERE docstatus = 1
+		  AND transaction_date >= %s AND transaction_date <= %s
+		""",
+		(last_month_start, last_month_end),
+		as_list=True,
+	)[0][0]
+
+	# ── Top customers (MTD by order value) ────────────────────────────────
+
+	top_customers = frappe.db.sql(
+		"""
+		SELECT
+		    customer_name,
+		    COUNT(*) AS order_count,
+		    IFNULL(SUM(grand_total), 0) AS total_value
+		FROM `tabSales Order`
+		WHERE docstatus = 1
+		  AND transaction_date >= %s AND transaction_date <= %s
+		GROUP BY customer_name
+		ORDER BY total_value DESC
+		LIMIT 5
+		""",
+		(month_start, today),
+		as_dict=True,
+	)
+
 	# ── Latest CM Products ─────────────────────────────────────────────────
 
 	latest_products = frappe.db.sql(
@@ -248,23 +331,32 @@ def get_dashboard_kpis():
 			row["creation"] = row["creation"].strftime("%Y-%m-%d %H:%M:%S")
 
 	return {
-		# Financial
-		"today_order_count":  int(today_orders.cnt or 0),
-		"today_order_value":  float(today_orders.total or 0),
-		"today_invoiced":     float(today_invoiced or 0),
-		"receivables":        float(receivables or 0),
-		"pending_so_value":   float(pending_so_value or 0),
+		# Today
+		"today_order_count":    int(today_orders.cnt or 0),
+		"today_order_value":    float(today_orders.total or 0),
+		"today_invoiced":       float(today_invoiced or 0),
+		"receivables":          float(receivables or 0),
+		"pending_so_value":     float(pending_so_value or 0),
+		# MTD / YTD
+		"mtd_order_count":      int(mtd_orders.cnt or 0),
+		"mtd_order_value":      float(mtd_orders.total or 0),
+		"mtd_invoiced":         float(mtd_invoiced or 0),
+		"mtd_quotation_count":  int(mtd_quotations.cnt or 0),
+		"mtd_quotation_value":  float(mtd_quotations.total or 0),
+		"ytd_order_value":      float(ytd_order_value or 0),
+		"last_month_value":     float(last_month_value or 0),
 		# Operational
-		"open_so_count":      int(open_so_count or 0),
-		"open_po_count":      int(open_po_count or 0),
-		"low_stock_count":    int(low_stock_count or 0),
-		"draft_doc_count":    int(draft_doc_count or 0),
+		"open_so_count":        int(open_so_count or 0),
+		"open_po_count":        int(open_po_count or 0),
+		"low_stock_count":      int(low_stock_count or 0),
+		"draft_doc_count":      int(draft_doc_count or 0),
 		# Charts
-		"sales_trend":        sales_trend,
-		"top_products":       top_products,
+		"sales_trend":          sales_trend,
+		"top_products":         top_products,
+		"top_customers":        top_customers,
 		# Tables
-		"recent_orders":      recent_orders,
-		"latest_products":    latest_products,
+		"recent_orders":        recent_orders,
+		"latest_products":      latest_products,
 	}
 
 
