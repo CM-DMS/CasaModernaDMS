@@ -23,7 +23,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
 import { productsApi } from '../../api/products'
-import type { ItemSearchRow } from '../../api/products'
+import type { CMProductRow } from '../../api/products'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { CM } from '../../components/ui/CMClassNames'
 import { CMButton } from '../../components/ui/CMComponents'
@@ -41,10 +41,10 @@ const MAX_RECENT = 8
 const SORT_OPTIONS = [
   { value: 'cm_given_name:asc', label: 'Name A → Z' },
   { value: 'cm_given_name:desc', label: 'Name Z → A' },
-  { value: 'item_code:asc', label: 'Item Code' },
-  { value: 'modified:desc', label: 'Recently Modified' },
-  { value: 'cm_final_offer_inc_vat:asc', label: 'Price Low → High' },
-  { value: 'cm_final_offer_inc_vat:desc', label: 'Price High → Low' },
+  { value: 'name:asc', label: 'Product Code' },
+  { value: 'creation:desc', label: 'Recently Added' },
+  { value: 'cm_offer_tier1_inc_vat:asc', label: 'Price Low → High' },
+  { value: 'cm_offer_tier1_inc_vat:desc', label: 'Price High → Low' },
   { value: 'free_stock:desc', label: 'Stock (High)' },
 ]
 
@@ -72,10 +72,10 @@ function csvEscape(v: unknown): string {
   if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`
   return s
 }
-function downloadCsv(rows: ItemSearchRow[], filename: string) {
+function downloadCsv(rows: CMProductRow[], filename: string) {
   const headers = [
-    'item_code', 'item_name', 'cm_given_name', 'item_group', 'brand',
-    'cm_final_offer_inc_vat', 'cm_rrp_inc_vat', 'cm_discount_percent', 'free_stock',
+    'name', 'item_name', 'cm_given_name', 'item_group', 'cm_supplier_name',
+    'cm_offer_tier1_inc_vat', 'cm_rrp_inc_vat', 'cm_offer_tier1_discount_pct', 'free_stock',
   ]
   const lines = [
     headers.join(','),
@@ -119,7 +119,7 @@ function StockIndicator({ freeStock }: { freeStock?: number }) {
 }
 
 interface ProductCardProps {
-  item: ItemSearchRow
+  item: CMProductRow
   query: string
   selected: boolean
   onCompareToggle: (code: string) => void
@@ -128,22 +128,18 @@ interface ProductCardProps {
 
 function ProductCard({ item, query, selected, onCompareToggle, canCompare }: ProductCardProps) {
   const navigate = useNavigate()
-  const displayName = item.cm_given_name || item.item_name || item.item_code
-  const offerIncVat = item.cm_final_offer_inc_vat
+  const displayName = item.cm_given_name || item.item_name || item.name
+  const offerIncVat = item.cm_offer_tier1_inc_vat
   const rrpIncVat = item.cm_rrp_inc_vat
   const freeStock = item.free_stock
 
   return (
     <div
       className={`group relative flex flex-col rounded-xl border bg-white hover:shadow-md transition-all cursor-pointer overflow-hidden ${selected ? 'ring-2 ring-cm-green border-cm-green' : 'border-gray-200 hover:border-gray-300'}`}
-      onClick={() => navigate(`/products/${encodeURIComponent(item.item_code)}`)}
+      onClick={() => navigate(`/products/${encodeURIComponent(item.name)}`)}
     >
       <div className="relative bg-gray-50 aspect-square overflow-hidden">
-        {item.image ? (
-          <img src={item.image} alt={displayName} className="w-full h-full object-cover" loading="lazy" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-200 text-4xl">🖼</div>
-        )}
+        <div className="w-full h-full flex items-center justify-center text-gray-200 text-4xl">🖼</div>
         {item.disabled ? (
           <span className="absolute top-2 left-2 bg-gray-800 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">INACTIVE</span>
         ) : item.cm_hidden_from_catalogue ? (
@@ -151,7 +147,7 @@ function ProductCard({ item, query, selected, onCompareToggle, canCompare }: Pro
         ) : null}
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onCompareToggle(item.item_code) }}
+          onClick={(e) => { e.stopPropagation(); onCompareToggle(item.name) }}
           disabled={!selected && !canCompare}
           className={[
             'absolute bottom-2 right-2 rounded-full text-[10px] font-semibold px-2 py-1 border transition-colors',
@@ -164,7 +160,7 @@ function ProductCard({ item, query, selected, onCompareToggle, canCompare }: Pro
         </button>
       </div>
       <div className="flex flex-col flex-1 p-3 gap-1">
-        <div className="text-[11px] text-gray-400 font-mono truncate">{item.item_code}</div>
+        <div className="text-[11px] text-gray-400 font-mono truncate">{item.name}</div>
         <div className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">
           <Highlight text={displayName} query={query} />
         </div>
@@ -192,7 +188,7 @@ function ProductCard({ item, query, selected, onCompareToggle, canCompare }: Pro
 }
 
 interface ProductRowProps {
-  item: ItemSearchRow
+  item: CMProductRow
   query: string
   selected: boolean
   onCompareToggle: (code: string) => void
@@ -203,35 +199,35 @@ interface ProductRowProps {
 
 function ProductRow({ item, query, selected, onCompareToggle, canCompare, canHide, onHideToggle }: ProductRowProps) {
   const navigate = useNavigate()
-  const displayName = item.cm_given_name || item.item_name || item.item_code
+  const displayName = item.cm_given_name || item.item_name || item.name
 
   return (
     <tr
       className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${selected ? 'bg-green-50' : ''}`}
-      onClick={() => navigate(`/products/${encodeURIComponent(item.item_code)}`)}
+      onClick={() => navigate(`/products/${encodeURIComponent(item.name)}`)}
     >
       <td className="py-2.5 pl-3 pr-2 w-8" onClick={(e) => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={selected}
           disabled={!selected && !canCompare}
-          onChange={() => onCompareToggle(item.item_code)}
+          onChange={() => onCompareToggle(item.name)}
           className="accent-cm-green cursor-pointer"
         />
       </td>
       <td className="py-2.5 pr-3">
-        <div className="text-[11px] text-gray-400 font-mono">{item.item_code}</div>
+        <div className="text-[11px] text-gray-400 font-mono">{item.name}</div>
         <div className="text-sm font-medium text-gray-900">
           <Highlight text={displayName} query={query} />
         </div>
       </td>
       <td className="py-2.5 pr-3 text-[12px] text-gray-500">{item.item_group}</td>
-      <td className="py-2.5 pr-3 text-[12px] text-gray-500">{item.brand}</td>
+      <td className="py-2.5 pr-3 text-[12px] text-gray-500">{item.cm_supplier_name}</td>
       <td className="py-2.5 pr-3 text-right tabular-nums text-sm font-semibold text-cm-green">
-        {item.cm_final_offer_inc_vat ? fmtMoneyWhole(item.cm_final_offer_inc_vat) : '—'}
+        {item.cm_offer_tier1_inc_vat ? fmtMoneyWhole(item.cm_offer_tier1_inc_vat) : '—'}
       </td>
       <td className="py-2.5 pr-3 text-right tabular-nums text-[12px] text-gray-400">
-        {item.cm_discount_percent ? fmtDiscountUI(item.cm_discount_percent) : '—'}
+        {item.cm_offer_tier1_discount_pct ? fmtDiscountUI(item.cm_offer_tier1_discount_pct) : '—'}
       </td>
       <td className="py-2.5 pr-3">
         <div className="flex items-center gap-1.5">
@@ -243,7 +239,7 @@ function ProductRow({ item, query, selected, onCompareToggle, canCompare, canHid
         <td className="py-2.5 pr-3 text-center" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={() => onHideToggle?.(item.item_code, !item.cm_hidden_from_catalogue)}
+            onClick={() => onHideToggle?.(item.name, !item.cm_hidden_from_catalogue)}
             className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
               item.cm_hidden_from_catalogue
                 ? 'text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100'
@@ -259,20 +255,20 @@ function ProductRow({ item, query, selected, onCompareToggle, canCompare, canHid
 }
 
 interface CompareModalProps {
-  items: ItemSearchRow[]
+  items: CMProductRow[]
   onClose: () => void
   onRemove: (code: string) => void
 }
 
 function CompareModal({ items, onClose, onRemove }: CompareModalProps) {
   const navigate = useNavigate()
-  const FIELDS: { key: keyof ItemSearchRow; label: string; fmt?: (v: unknown) => string }[] = [
-    { key: 'item_code', label: 'Item Code' },
+  const FIELDS: { key: keyof CMProductRow; label: string; fmt?: (v: unknown) => string }[] = [
+    { key: 'name', label: 'Product Code' },
     { key: 'item_group', label: 'Item Group' },
-    { key: 'brand', label: 'Brand' },
+    { key: 'cm_supplier_name', label: 'Supplier' },
     { key: 'cm_rrp_inc_vat', label: 'RRP incl. VAT', fmt: (v) => (v ? fmtMoneySmart(Number(v)) : '—') },
-    { key: 'cm_final_offer_inc_vat', label: 'Offer incl. VAT', fmt: (v) => (v ? fmtMoneyWhole(Number(v)) : '—') },
-    { key: 'cm_discount_percent', label: 'Discount', fmt: (v) => (v ? fmtDiscountUI(Number(v)) : '—') },
+    { key: 'cm_offer_tier1_inc_vat', label: 'Offer incl. VAT', fmt: (v) => (v ? fmtMoneyWhole(Number(v)) : '—') },
+    { key: 'cm_offer_tier1_discount_pct', label: 'Discount', fmt: (v) => (v ? fmtDiscountUI(Number(v)) : '—') },
     { key: 'free_stock', label: 'Free Stock', fmt: (v) => String(v ?? '—') },
   ]
 
@@ -289,20 +285,17 @@ function CompareModal({ items, onClose, onRemove }: CompareModalProps) {
               <tr>
                 <th className="w-32 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-50" />
                 {items.map((item) => (
-                  <th key={item.item_code} className="px-4 py-3 text-left min-w-[160px]">
+                  <th key={item.name} className="px-4 py-3 text-left min-w-[160px]">
                     <div className="flex items-start justify-between gap-2">
                       <button
                         type="button"
-                        onClick={() => navigate(`/products/${encodeURIComponent(item.item_code)}`)}
+                        onClick={() => navigate(`/products/${encodeURIComponent(item.name)}`)}
                         className="text-sm font-medium text-gray-900 hover:text-cm-green text-left leading-snug"
                       >
                         {item.cm_given_name || item.item_name}
                       </button>
-                      <button type="button" onClick={() => onRemove(item.item_code)} className="text-gray-300 hover:text-red-500 shrink-0 mt-0.5">✕</button>
+                      <button type="button" onClick={() => onRemove(item.name)} className="text-gray-300 hover:text-red-500 shrink-0 mt-0.5">✕</button>
                     </div>
-                    {item.image && (
-                      <img src={item.image} alt="" className="mt-2 h-20 w-20 object-cover rounded border border-gray-100" />
-                    )}
                   </th>
                 ))}
               </tr>
@@ -312,9 +305,9 @@ function CompareModal({ items, onClose, onRemove }: CompareModalProps) {
                 <tr key={f.key} className="border-t border-gray-100">
                   <td className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-50">{f.label}</td>
                   {items.map((item) => {
-                    const raw = item[f.key]
+                    const raw = item[f.key as keyof CMProductRow]
                     const display = f.fmt ? f.fmt(raw) : String(raw ?? '—')
-                    return <td key={item.item_code} className="px-4 py-2.5 text-gray-800">{display}</td>
+                    return <td key={item.name} className="px-4 py-2.5 text-gray-800">{display}</td>
                   })}
                 </tr>
               ))}
@@ -330,7 +323,7 @@ function CompareModal({ items, onClose, onRemove }: CompareModalProps) {
 }
 
 interface CompareBarProps {
-  items: ItemSearchRow[]
+  items: CMProductRow[]
   onRemove: (code: string) => void
   onCompare: () => void
   onClear: () => void
@@ -344,9 +337,9 @@ function CompareBar({ items, onRemove, onCompare, onClear }: CompareBarProps) {
         <span className="text-xs font-semibold text-gray-500 shrink-0">Compare ({items.length}/{COMPARE_MAX}):</span>
         <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
           {items.map((item) => (
-            <span key={item.item_code} className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-[12px] font-medium px-2 py-1 rounded-full max-w-xs truncate">
-              <span className="truncate">{item.cm_given_name || item.item_code}</span>
-              <button type="button" onClick={() => onRemove(item.item_code)} className="text-gray-400 hover:text-red-500 ml-0.5 shrink-0">✕</button>
+            <span key={item.name} className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-[12px] font-medium px-2 py-1 rounded-full max-w-xs truncate">
+              <span className="truncate">{item.cm_given_name || item.name}</span>
+              <button type="button" onClick={() => onRemove(item.name)} className="text-gray-400 hover:text-red-500 ml-0.5 shrink-0">✕</button>
             </span>
           ))}
         </div>
@@ -398,7 +391,7 @@ export function ProductList() {
   const [selectedGroups, setSelectedGroups] = useState<string[]>(() => {
     try { return JSON.parse(searchParams.get('groups') ?? '[]') as string[] } catch { return [] }
   })
-  const [brand, setBrand] = useState(searchParams.get('brand') ?? '')
+  const [supplierName, setSupplierName] = useState(searchParams.get('supplier') ?? '')
   const [sort, setSort] = useState(searchParams.get('sort') ?? 'cm_given_name:asc')
   const [showInactive, setShowInactive] = useState(searchParams.get('inactive') === '1')
   const [showHidden, setShowHidden] = useState(searchParams.get('hidden') === '1')
@@ -410,7 +403,7 @@ export function ProductList() {
     const p: Record<string, string> = {}
     if (q) p['q'] = q
     if (selectedGroups.length > 0) p['groups'] = JSON.stringify(selectedGroups)
-    if (brand) p['brand'] = brand
+    if (supplierName) p['supplier'] = supplierName
     if (sort !== 'cm_given_name:asc') p['sort'] = sort
     if (showInactive) p['inactive'] = '1'
     if (showHidden) p['hidden'] = '1'
@@ -418,19 +411,19 @@ export function ProductList() {
     if (minPrice) p['minp'] = minPrice
     if (maxPrice) p['maxp'] = maxPrice
     setSearchParams(p, { replace: true })
-  }, [q, selectedGroups, brand, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice, setSearchParams])
+  }, [q, selectedGroups, supplierName, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice, setSearchParams])
 
   // UI state
   const [view, setView] = useState<'grid' | 'list'>('grid')
-  const [items, setItems] = useState<ItemSearchRow[]>([])
+  const [items, setItems] = useState<CMProductRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [groups, setGroups] = useState<string[]>([])
-  const [brands, setBrands] = useState<string[]>([])
+  const [suppliers, setSuppliers] = useState<string[]>([])
   const [compareSet, setCompareSet] = useState<Set<string>>(new Set())
-  const [compareItems, setCompareItems] = useState<ItemSearchRow[]>([])
+  const [compareItems, setCompareItems] = useState<CMProductRow[]>([])
   const [showCompare, setShowCompare] = useState(false)
   const [bulkSelected, setBulkSelected] = useState<string[]>([])
   const [bulkBusy, setBulkBusy] = useState(false)
@@ -447,7 +440,7 @@ export function ProductList() {
   // Load groups + brands
   useEffect(() => {
     productsApi.getGroups().then(setGroups).catch(() => {})
-    productsApi.getBrands().then(setBrands).catch(() => {})
+    productsApi.getSuppliers().then(setSuppliers).catch(() => {})
   }, [])
 
   // Fetch products
@@ -459,9 +452,10 @@ export function ProductList() {
 
     const [sortBy, sortDir] = sort.split(':') as [string, string]
     try {
-      const rows = await productsApi.search({
+      const result = await productsApi.search({
         q,
         itemGroups: selectedGroups.length > 0 ? selectedGroups : undefined,
+        supplierName: supplierName || undefined,
         disabled: showInactive ? undefined : 0,
         showHidden: showHidden ? true : undefined,
         sortBy,
@@ -472,7 +466,7 @@ export function ProductList() {
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
       })
-      const list = rows ?? []
+      const list = result.rows ?? []
       setItems((prev) => (append ? [...prev, ...list] : list))
       setHasMore(list.length === PAGE_SIZE)
       offsetRef.current = currentOffset + list.length
@@ -483,7 +477,7 @@ export function ProductList() {
       loadingRef.current = false
       setLoading(false)
     }
-  }, [q, selectedGroups, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice])
+  }, [q, selectedGroups, supplierName, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice])
 
   // Reset + fetch on filter change
   useEffect(() => {
@@ -493,7 +487,7 @@ export function ProductList() {
     setHasMore(true)
     void fetchProducts(false, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, selectedGroups, brand, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice])
+  }, [q, selectedGroups, supplierName, sort, showInactive, showHidden, inStockOnly, minPrice, maxPrice])
 
   // Infinite scroll
   useEffect(() => {
@@ -525,7 +519,7 @@ export function ProductList() {
 
   // Compare helpers
   function toggleCompare(code: string) {
-    const item = items.find((i) => i.item_code === code)
+    const item = items.find((i) => i.name === code)
     setCompareSet((prev) => {
       const next = new Set(prev)
       if (next.has(code)) next.delete(code)
@@ -533,7 +527,7 @@ export function ProductList() {
       return next
     })
     setCompareItems((prev) => {
-      if (prev.find((i) => i.item_code === code)) return prev.filter((i) => i.item_code !== code)
+      if (prev.find((i) => i.name === code)) return prev.filter((i) => i.name !== code)
       if (!item || prev.length >= COMPARE_MAX) return prev
       return [...prev, item]
     })
@@ -545,11 +539,11 @@ export function ProductList() {
     try {
       await Promise.all(
         bulkSelected.map((code) =>
-          frappe.call('frappe.client.set_value', { doctype: 'Item', name: code, fieldname: field, value }),
+          frappe.call('frappe.client.set_value', { doctype: 'CM Product', name: code, fieldname: field, value }),
         ),
       )
       setItems((prev) =>
-        prev.map((i) => bulkSelected.includes(i.item_code) ? ({ ...i, [field]: value } as ItemSearchRow) : i),
+        prev.map((i) => bulkSelected.includes(i.name) ? ({ ...i, [field]: value } as CMProductRow) : i),
       )
       setBulkSelected([])
     } catch { /* silent */ }
@@ -558,16 +552,16 @@ export function ProductList() {
 
   async function handleHideToggle(code: string, hidden: boolean) {
     await frappe.call('frappe.client.set_value', {
-      doctype: 'Item', name: code, fieldname: 'cm_hidden_from_catalogue', value: hidden ? 1 : 0,
+      doctype: 'CM Product', name: code, fieldname: 'cm_hidden_from_catalogue', value: hidden ? 1 : 0,
     })
     setItems((prev) =>
-      prev.map((i) => i.item_code === code ? ({ ...i, cm_hidden_from_catalogue: hidden ? 1 : 0 } as ItemSearchRow) : i),
+      prev.map((i) => i.name === code ? ({ ...i, cm_hidden_from_catalogue: hidden ? 1 : 0 } as CMProductRow) : i),
     )
   }
 
-  const filteredBrands = useMemo(
-    () => (brand ? brands.filter((b) => b.toLowerCase().includes(brand.toLowerCase())) : brands),
-    [brands, brand],
+  const filteredSuppliers = useMemo(
+    () => (supplierName ? suppliers.filter((s) => s.toLowerCase().includes(supplierName.toLowerCase())) : suppliers),
+    [suppliers, supplierName],
   )
 
   function handleSearchEnter(e: KeyboardEvent<HTMLInputElement>) {
@@ -666,10 +660,10 @@ export function ProductList() {
           )}
         </div>
 
-        {/* Brand */}
-        <select value={brand} onChange={(e) => setBrand(e.target.value)} className={CM.select + ' max-w-[160px]'}>
-          <option value="">All Brands</option>
-          {filteredBrands.map((b) => <option key={b} value={b}>{b}</option>)}
+        {/* Supplier */}
+        <select value={supplierName} onChange={(e) => setSupplierName(e.target.value)} className={CM.select + ' max-w-[160px]'}>
+          <option value="">All Suppliers</option>
+          {filteredSuppliers.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
 
         {/* Price range */}
@@ -744,10 +738,10 @@ export function ProductList() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {items.map((item) => (
             <ProductCard
-              key={item.item_code}
+              key={item.name}
               item={item}
               query={q}
-              selected={compareSet.has(item.item_code)}
+              selected={compareSet.has(item.name)}
               onCompareToggle={toggleCompare}
               canCompare={compareSet.size < COMPARE_MAX}
             />
@@ -771,10 +765,10 @@ export function ProductList() {
             <tbody>
               {items.map((item) => (
                 <ProductRow
-                  key={item.item_code}
+                  key={item.name}
                   item={item}
                   query={q}
-                  selected={compareSet.has(item.item_code)}
+                  selected={compareSet.has(item.name)}
                   onCompareToggle={toggleCompare}
                   canCompare={compareSet.size < COMPARE_MAX}
                   canHide={canHide}

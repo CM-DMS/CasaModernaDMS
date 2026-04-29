@@ -14,7 +14,7 @@ import { usePermissions } from '../../auth/PermissionsProvider'
 import { PageHeader, BackLink } from '../../components/shared/ui'
 import { CMButton } from '../../components/ui/CMComponents'
 import { productsApi } from '../../api/products'
-import type { ItemDoc } from '../../api/products'
+import type { CMProductDoc } from '../../api/products'
 import { ProductGeneralTab } from './ProductGeneralTab'
 import { ProductSuppliersPricingTab } from './ProductSuppliersPricingTab'
 import { ProductStockTab } from './ProductStockTab'
@@ -39,7 +39,7 @@ export function ProductProfile() {
   const canSales = can('canSales') || can('canAdmin')
   const canAdmin = can('canAdmin')
 
-  const [item, setItem] = useState<ItemDoc | null>(null)
+  const [item, setItem] = useState<CMProductDoc | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<Tab>('general')
@@ -82,7 +82,7 @@ export function ProductProfile() {
     setDuplicating(true)
     try {
       const copied = await frappe.call<{ name: string }>('frappe.client.copy_doc', {
-        doctype: 'Item',
+        doctype: 'CM Product',
         name: item.name,
       })
       navigate(`/products/${encodeURIComponent(copied.name)}/edit`)
@@ -109,7 +109,7 @@ export function ProductProfile() {
   }
   if (!item) return null
 
-  const displayName = item.cm_given_name || item.item_name || item.item_code
+  const displayName = item.cm_given_name || item.item_name || item.name
 
   return (
     <div className="space-y-4">
@@ -117,7 +117,7 @@ export function ProductProfile() {
 
       <PageHeader
         title={displayName}
-        subtitle={item.item_code !== displayName ? item.item_code : undefined}
+        subtitle={item.name !== displayName ? item.name : undefined}
         actions={
           <div className="flex items-center gap-2">
             {canEditProduct && (

@@ -12,11 +12,11 @@ import { CMSection, CMButton } from '../../components/ui/CMComponents'
 import { CM } from '../../components/ui/CMClassNames'
 import { fmtMoneySmart, fmtMoneyWhole, fmtDiscountUI } from '../../utils/pricing'
 import { usePermissions } from '../../auth/PermissionsProvider'
-import type { ItemDoc } from '../../api/products'
+import type { CMProductDoc } from '../../api/products'
 import { ProductEditorInline } from './ProductEditor'
 
 interface Props {
-  item: ItemDoc
+  item: CMProductDoc
   onRefresh: () => void
 }
 
@@ -126,7 +126,7 @@ function ImagePanel({
   canEdit,
   onImageUpdated,
 }: {
-  item: ItemDoc
+  item: CMProductDoc
   canEdit: boolean
   onImageUpdated: (url: string) => void
 }) {
@@ -141,7 +141,7 @@ function ImagePanel({
     setUploadError(null)
     try {
       const result = await frappe.uploadFile(file, {
-        doctype: 'Item',
+        doctype: 'CM Product',
         docname: item.name,
         fieldname: 'image',
         isPrivate: false,
@@ -210,7 +210,7 @@ export function ProductGeneralTab({ item, onRefresh }: Props) {
     setImageSaveError(null)
     try {
       await frappe.call('frappe.client.set_value', {
-        doctype: 'Item',
+        doctype: 'CM Product',
         name: item.name,
         fieldname: 'image',
         value: url,
@@ -242,10 +242,10 @@ export function ProductGeneralTab({ item, onRefresh }: Props) {
   const rrpSubLabel = vatMode === 'inc' ? 'Exc VAT' : 'Inc VAT'
 
   const offerValue =
-    vatMode === 'inc' ? item.cm_final_offer_inc_vat : item.cm_final_offer_ex_vat
+    vatMode === 'inc' ? item.cm_offer_tier1_inc_vat : item.cm_offer_tier1_ex_vat
   const offerFmt = vatMode === 'inc' ? fmtMoneyWhole : fmtMoneySmart
   const offerSub =
-    vatMode === 'inc' ? item.cm_final_offer_ex_vat : item.cm_final_offer_inc_vat
+    vatMode === 'inc' ? item.cm_offer_tier1_ex_vat : item.cm_offer_tier1_inc_vat
   const offerSubFmt = vatMode === 'inc' ? fmtMoneySmart : fmtMoneyWhole
   const offerSubLabel = vatMode === 'inc' ? 'Exc VAT' : 'Inc VAT'
 
@@ -287,22 +287,19 @@ export function ProductGeneralTab({ item, onRefresh }: Props) {
           </div>
 
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
-            <Field label="Item Code" value={item.item_code} />
+            <Field label="Product Code" value={item.name} />
             <Field label="Group" value={item.item_group} />
             <Field label="UOM" value={item.stock_uom} />
-            <Field label="Brand" value={item.brand} />
+            <Field label="Supplier" value={item.cm_supplier_name} />
           </dl>
 
-          {(item.cm_description_line_1 || item.cm_description_line_2 || item.description) && (
+          {(item.cm_description_line_1 || item.cm_description_line_2) && (
             <div className="space-y-0.5">
               {item.cm_description_line_1 && (
                 <p className="text-sm text-gray-700">{item.cm_description_line_1}</p>
               )}
               {item.cm_description_line_2 && (
                 <p className="text-sm text-gray-500">{item.cm_description_line_2}</p>
-              )}
-              {!item.cm_description_line_1 && item.description && (
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{item.description}</p>
               )}
             </div>
           )}
@@ -334,7 +331,7 @@ export function ProductGeneralTab({ item, onRefresh }: Props) {
                   subValue={offerSub}
                   subFormatter={offerSubFmt}
                 />
-                <DiscountCard value={item.cm_discount_percent} />
+                <DiscountCard value={item.cm_offer_tier1_discount_pct} />
               </div>
             </div>
           )}
@@ -358,10 +355,10 @@ export function ProductGeneralTab({ item, onRefresh }: Props) {
                       doc: {
                         items: [
                           {
-                            item_code: item.item_code,
+                            item_code: item.name,
                             item_name: item.item_name || item.cm_given_name,
                             qty: 1,
-                            rate: item.cm_final_offer_ex_vat,
+                            rate: item.cm_offer_tier1_ex_vat,
                           },
                         ],
                       },

@@ -1,8 +1,9 @@
 """catalogue_search.py
 
-Unified Product Catalogue Search API — returns matching Items with free-stock
-data joined from tabBin in a single SQL query, supporting full-text search,
-multi-group filtering, supplier filtering, sorting and pagination.
+Unified Product Catalogue Search API — returns matching CM Products with
+free-stock data joined from tabBin in a single SQL query, supporting
+full-text search, multi-group filtering, supplier filtering, sorting and
+pagination.
 
 Used by the DMS React frontend ProductList catalogue page.
 """
@@ -15,24 +16,25 @@ from datetime import date, timedelta
 import frappe
 
 
-# ── Field list returned for every item ───────────────────────────────────────
+# ── Field list returned for every CM Product row ─────────────────────────────
 
-_ITEM_COLS = [
-    "name", "item_code", "item_name", "item_group", "cm_given_name",
-    "stock_uom", "brand", "disabled", "image", "creation",
-    "cm_rrp_ex_vat", "cm_rrp_inc_vat", "cm_final_offer_inc_vat",
-    "cm_final_offer_ex_vat", "cm_discount_percent", "cm_discount_target_percent",
-    "cm_hidden_from_catalogue", "cm_product_type",
-    "cm_supplier_code", "cm_supplier_item_code",
+_CM_PRODUCT_COLS = [
+    "name", "item_name", "cm_given_name", "item_group", "stock_uom",
+    "disabled", "cm_hidden_from_catalogue", "cm_product_type",
+    "cm_supplier_name", "cm_supplier_code",
+    "cm_rrp_ex_vat", "cm_rrp_inc_vat",
+    "cm_offer_tier1_inc_vat", "cm_offer_tier1_ex_vat", "cm_offer_tier1_discount_pct",
+    "is_stock_item", "creation",
 ]
 
 # Allowed ORDER BY columns — validated against this set to prevent injection.
 _SORT_COLS = {
     "item_name":              "i.item_name",
-    "item_code":              "i.item_code",
-    "cm_given_name":          "COALESCE(i.cm_given_name, i.item_name)",
-    "cm_final_offer_inc_vat": "i.cm_final_offer_inc_vat",
+    "name":                   "i.name",
+    "cm_given_name":          "COALESCE(NULLIF(i.cm_given_name,''), i.item_name)",
+    "cm_offer_tier1_inc_vat": "i.cm_offer_tier1_inc_vat",
     "free_stock":             "free_stock",
+    "creation":               "i.creation",
 }
 
 
@@ -58,10 +60,11 @@ def search_catalogue(
     q="",
     item_groups=None,
     supplier_code="",
+    supplier_name="",
     disabled=None,
     show_hidden=0,
     product_type="Primary",
-    sort_by="item_name",
+    sort_by="cm_given_name",
     sort_dir="asc",
     limit=50,
     offset=0,
@@ -70,33 +73,34 @@ def search_catalogue(
     max_price=None,
     barcode="",
 ):
-    """Search the product catalogue.
+    """Search the CM Product catalogue.
 
     Returns ``{"rows": [...], "total": N}`` where ``rows`` includes all
-    ``_ITEM_COLS`` fields plus a computed ``free_stock`` column
+    ``_CM_PRODUCT_COLS`` fields plus a computed ``free_stock`` column
     (actual_qty - reserved_qty, summed across all warehouses).
 
     Parameters
     ----------
-    q           : free-text search (item_name, item_code, cm_given_name, cm_supplier_item_code)
-    item_groups : JSON array of item_group names to include (empty = all)
-    supplier_code : exact cm_supplier_code filter
-    disabled    : 0/1 to include only active/inactive; omit for active-only
-    show_hidden : include cm_hidden_from_catalogue=1 items
-    product_type: 'Primary', 'All', or any cm_product_type value
-    sort_by     : one of item_name | item_code | cm_given_name | cm_final_offer_inc_vat | free_stock
-    sort_dir    : 'asc' or 'desc'
-    limit       : page size (max 200)
-    offset      : pagination offset
+    q            : free-text search (item_name, cm_given_name, name, cm_supplier_name, cm_supplier_code)
+    item_groups  : JSON array of item_group names to include (empty = all)
+    supplier_code: exact cm_supplier_code filter
+    supplier_name: partial cm_supplier_name filter (LIKE %value%)
+    disabled     : 0/1 to include only active/inactive; omit for active-only
+    show_hidden  : include cm_hidden_from_catalogue=1 items
+    product_type : 'Primary', 'All', or any cm_product_type value
+    sort_by      : one of name | item_name | cm_given_name | cm_offer_tier1_inc_vat | free_stock | creation
+    sort_dir     : 'asc' or 'desc'
+    limit        : page size (max 200)
+    offset       : pagination offset
     in_stock_only: 1 = only items with free_stock > 0
-    min_price   : minimum cm_final_offer_inc_vat (inclusive)
-    max_price   : maximum cm_final_offer_inc_vat (inclusive)
-    barcode     : exact barcode string (searches tabItem Barcode child table)
+    min_price    : minimum cm_offer_tier1_inc_vat (inclusive)
+    max_price    : maximum cm_offer_tier1_inc_vat (inclusive)
+    barcode      : ignored (CM Product has no barcode child table — kept for API compat)
     """
 
     # ── Validate / coerce params ──────────────────────────────────────────────
     groups = _parse_list_param(item_groups)
-    sort_col = _SORT_COLS.get(str(sort_by), "i.item_name")
+    sort_col = _SORT_COLS.get(str(sort_by), "COALESCE(NULLIF(i.cm_given_name,''), i.item_name)")
     sort_direction = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
     limit = max(1, min(int(limit), 200))
     offset = max(0, int(offset))
@@ -121,49 +125,38 @@ def search_catalogue(
         conditions.append("i.cm_product_type = %s")
         values.append(str(product_type))
 
-    # Exclude configurator-only groups (written in ALL_CAPS — e.g. WARDROBE_DOOR, FURNITURE_BED).
-    # These are internal component groups used by the configurator and should never appear in
-    # the customer-facing catalogue.  Groups with at least one lowercase letter are kept.
-    conditions.append("i.item_group REGEXP BINARY '[a-z]'")
-
-    # Exclude specific groups and brands not shown in the customer catalogue.
-    conditions.append("i.item_group NOT IN ('Lorella Collection', 'Topline Bedrooms')")
-    conditions.append("IFNULL(i.brand, '') NOT IN ('Ares Mobilificio', 'Maresco', 'Topline Mobili')")
-
     # Item group(s)
     if groups:
         placeholders = ", ".join(["%s"] * len(groups))
         conditions.append(f"i.item_group IN ({placeholders})")
         values.extend(groups)
 
-    # Brand
+    # Exact supplier code filter
     if supplier_code:
-        conditions.append("i.brand = %s")
+        conditions.append("i.cm_supplier_code = %s")
         values.append(str(supplier_code))
 
-    # Free-text search (OR across searchable name fields)
+    # Partial supplier name filter
+    if supplier_name:
+        conditions.append("i.cm_supplier_name LIKE %s")
+        values.append(f"%{supplier_name}%")
+
+    # Free-text search (OR across searchable fields)
     if q:
         like = f"%{q}%"
         conditions.append(
-            "(i.item_name LIKE %s OR i.item_code LIKE %s"
-            " OR i.cm_given_name LIKE %s OR i.cm_supplier_item_code LIKE %s)"
+            "(i.item_name LIKE %s OR i.cm_given_name LIKE %s"
+            " OR i.name LIKE %s OR i.cm_supplier_name LIKE %s"
+            " OR i.cm_supplier_code LIKE %s)"
         )
-        values.extend([like, like, like, like])
+        values.extend([like, like, like, like, like])
 
-    # Barcode search — exact match on tabItem Barcode child table
-    if barcode and str(barcode).strip():
-        conditions.append(
-            "EXISTS (SELECT 1 FROM `tabItem Barcode` ib"
-            " WHERE ib.parent = i.name AND ib.barcode = %s)"
-        )
-        values.append(str(barcode).strip())
-
-    # Price range filter on customer-facing offer price (inc VAT)
-    if min_price is not None and str(min_price).strip() not in ('', 'None'):
-        conditions.append("i.cm_final_offer_inc_vat >= %s")
+    # Price range filter on Tier 1 offer price (inc VAT)
+    if min_price is not None and str(min_price).strip() not in ("", "None"):
+        conditions.append("i.cm_offer_tier1_inc_vat >= %s")
         values.append(float(min_price))
-    if max_price is not None and str(max_price).strip() not in ('', 'None'):
-        conditions.append("i.cm_final_offer_inc_vat <= %s")
+    if max_price is not None and str(max_price).strip() not in ("", "None"):
+        conditions.append("i.cm_offer_tier1_inc_vat <= %s")
         values.append(float(max_price))
 
     # In-stock filter — uses the subquery alias resolved at WHERE time
@@ -173,7 +166,7 @@ def search_catalogue(
     where = "WHERE " + " AND ".join(conditions) if conditions else ""
 
     # ── Build SQL fragments ───────────────────────────────────────────────────
-    item_cols_sql = ", ".join(f"i.`{c}`" for c in _ITEM_COLS)
+    item_cols_sql = ", ".join(f"i.`{c}`" for c in _CM_PRODUCT_COLS)
 
     stock_subquery = """(
         SELECT item_code,
@@ -182,20 +175,18 @@ def search_catalogue(
         GROUP BY item_code
     )"""
 
-    # Count query (no LIMIT/OFFSET, no ORDER BY)
     count_sql = f"""
         SELECT COUNT(*) AS total
-        FROM `tabItem` i
+        FROM `tabCM Product` i
         LEFT JOIN {stock_subquery} b ON b.item_code = i.name
         {where}
     """
 
-    # Data query
     data_sql = f"""
         SELECT
             {item_cols_sql},
             IFNULL(b.free_stock, 0) AS free_stock
-        FROM `tabItem` i
+        FROM `tabCM Product` i
         LEFT JOIN {stock_subquery} b ON b.item_code = i.name
         {where}
         ORDER BY {sort_col} {sort_direction}
@@ -208,7 +199,6 @@ def search_catalogue(
 
     rows = frappe.db.sql(data_sql, values + [limit, offset], as_dict=True)
 
-    # Convert Decimal/date values to plain Python types for JSON serialisation
     for row in rows:
         row["free_stock"] = float(row.get("free_stock") or 0)
         if row.get("creation"):
@@ -219,17 +209,14 @@ def search_catalogue(
 
 @frappe.whitelist()
 def get_catalogue_groups():
-    """Return distinct item_group values present in the active catalogue."""
+    """Return distinct item_group values present in the active CM Product catalogue."""
     rows = frappe.db.sql(
         """
         SELECT DISTINCT item_group
-        FROM `tabItem`
+        FROM `tabCM Product`
         WHERE disabled = 0
-          AND cm_hidden_from_catalogue = 0
           AND item_group IS NOT NULL
           AND item_group != ''
-          AND item_group REGEXP BINARY '[a-z]'
-          AND item_group NOT IN ('Lorella Collection', 'Topline Bedrooms')
         ORDER BY item_group
         """,
         as_dict=True,
@@ -238,23 +225,26 @@ def get_catalogue_groups():
 
 
 @frappe.whitelist()
-def get_catalogue_brands():
-    """Return distinct brand names present in the active catalogue."""
+def get_catalogue_suppliers():
+    """Return distinct supplier names present in the active CM Product catalogue."""
     rows = frappe.db.sql(
         """
-        SELECT DISTINCT brand
-        FROM `tabItem`
+        SELECT DISTINCT cm_supplier_name
+        FROM `tabCM Product`
         WHERE disabled = 0
-          AND cm_hidden_from_catalogue = 0
-          AND item_group REGEXP BINARY '[a-z]'
-          AND brand IS NOT NULL
-          AND brand != ''
-          AND brand NOT IN ('Ares Mobilificio', 'Maresco', 'Topline Mobili')
-        ORDER BY brand
+          AND cm_supplier_name IS NOT NULL
+          AND cm_supplier_name != ''
+        ORDER BY cm_supplier_name
         """,
         as_dict=True,
     )
-    return [r.brand for r in rows]
+    return [r.cm_supplier_name for r in rows]
+
+
+@frappe.whitelist()
+def get_catalogue_brands():
+    """Deprecated — proxies to get_catalogue_suppliers() for backward compat."""
+    return get_catalogue_suppliers()
 
 
 @frappe.whitelist()
@@ -287,17 +277,17 @@ def get_item_sales_velocity(item_code):
 
 @frappe.whitelist()
 def get_item_price_history(name):
-    """Return a list of pricing-field changes from the Version audit log for an Item."""
+    """Return a list of pricing-field changes from the Version audit log for a CM Product."""
     PRICING_FIELDS = {
         "cm_rrp_ex_vat", "cm_rrp_inc_vat",
-        "cm_final_offer_inc_vat", "cm_final_offer_ex_vat",
-        "cm_discount_target_percent", "cm_cost_ex_vat",
+        "cm_offer_tier1_inc_vat", "cm_offer_tier2_inc_vat", "cm_offer_tier3_inc_vat",
+        "cm_purchase_price_ex_vat", "cm_cost_ex_vat_calculated",
     }
     versions = frappe.db.sql(
         """
         SELECT creation, owner, data
         FROM `tabVersion`
-        WHERE ref_doctype = 'Item' AND docname = %s
+        WHERE ref_doctype = 'CM Product' AND docname = %s
         ORDER BY creation DESC
         LIMIT 30
         """,

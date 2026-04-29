@@ -22,3 +22,20 @@ def get_item(name: str) -> dict:
 	doc.apply_fieldlevel_read_permissions()
 	doc.run_method("onload")
 	return doc.as_dict()
+
+
+@frappe.whitelist()
+def get_cm_product(name: str) -> dict:
+	"""Return a single CM Product document with free_stock appended."""
+	doc = frappe.get_doc("CM Product", name)
+	doc.check_permission("read")
+	result = doc.as_dict()
+	# Append free_stock from tabBin (item_code = cm_product.name because thin Item uses the same code)
+	rows = frappe.db.sql(
+		"SELECT SUM(IFNULL(actual_qty,0) - IFNULL(reserved_qty,0)) AS fs"
+		" FROM `tabBin` WHERE item_code = %s",
+		name,
+		as_dict=True,
+	)
+	result["free_stock"] = float((rows[0].fs or 0) if rows else 0)
+	return result
