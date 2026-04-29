@@ -231,6 +231,22 @@ def get_dashboard_kpis():
 		as_dict=True,
 	)
 
+	# ── Latest CM Products ─────────────────────────────────────────────────
+
+	latest_products = frappe.db.sql(
+		"""
+		SELECT name, item_name, cm_given_name, cm_supplier_name, creation
+		FROM `tabCM Product`
+		WHERE disabled = 0
+		ORDER BY creation DESC
+		LIMIT 6
+		""",
+		as_dict=True,
+	)
+	for row in latest_products:
+		if hasattr(row.get("creation"), "strftime"):
+			row["creation"] = row["creation"].strftime("%Y-%m-%d %H:%M:%S")
+
 	return {
 		# Financial
 		"today_order_count":  int(today_orders.cnt or 0),
@@ -248,6 +264,7 @@ def get_dashboard_kpis():
 		"top_products":       top_products,
 		# Tables
 		"recent_orders":      recent_orders,
+		"latest_products":    latest_products,
 	}
 
 
