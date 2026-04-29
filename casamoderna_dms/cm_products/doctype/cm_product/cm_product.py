@@ -218,6 +218,12 @@ class CMProduct(Document):
 		item.cm_discount_target_percent = self.cm_offer_tier1_discount_pct or 0
 		item.cm_pricing_rounding_mode   = "whole_euro_roundup"
 
+		# Ensure the UOM conversion table has the stock UOM listed, otherwise
+		# ERPNext raises "UOM <uom> not found in Item" on transaction validation.
+		if is_new:
+			uom_val = item.stock_uom or "EA"
+			item.set("uoms", [{"uom": uom_val, "conversion_factor": 1.0}])
+
 		# Skip all external hooks — this Item is purely a reference placeholder.
 		item.flags.ignore_permissions  = True
 		item.flags.ignore_validate     = True
@@ -225,7 +231,15 @@ class CMProduct(Document):
 		item.flags.ignore_links        = True
 		item.flags.ignore_doc_events   = True
 
-		if is_new:
-			item.insert(ignore_permissions=True)
-		else:
-			item.save(ignore_permissions=True)
+		try:
+			if is_new:
+				item.insert(ignore_permissions=True)
+			else:
+				item.save(ignore_permissions=True)
+		except Exception as exc:
+			# Log but do not abort the CM Product save — the Item can be
+			# resynchronised later by re-saving this CM Product.
+			frappe.log_error(
+				title=f"CM Product thin Item sync failed [{item_code}]",
+				message=str(exc),
+			)
