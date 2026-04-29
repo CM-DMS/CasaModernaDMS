@@ -201,6 +201,7 @@ fixtures = [
 			"CM Price Override Request",
 			"CM Customer Onboarding Request",
 			"CM Registration Invitation",
+			"CM Product",
 		]]],
 	},
 	# Client Script fixture removed 2026-03-10: all 23 Frappe Desk client scripts

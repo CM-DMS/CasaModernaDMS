@@ -75,7 +75,6 @@ export function Sidebar() {
             {can('canConfirmSO') && (
               <NavItem to="/sales/queue"                icon="⏳" label="Pending Confirmation" />
             )}
-            <NavItem to="/sales/search"                 icon="🔍" label="Sales Search" />
           </NavGroup>
         )}
 

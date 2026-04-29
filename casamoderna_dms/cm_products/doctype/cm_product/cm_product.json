@@ -1,0 +1,427 @@
+{
+ "actions": [],
+ "autoname": "field:cm_given_code",
+ "creation": "2026-04-29 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "identity_section",
+  "cm_given_code",
+  "item_name",
+  "column_break_identity",
+  "item_group",
+  "stock_uom",
+  "cm_details_section",
+  "cm_given_name",
+  "cm_description_line_1",
+  "cm_description_line_2",
+  "status_section",
+  "disabled",
+  "cm_hidden_from_catalogue",
+  "column_break_status",
+  "cm_product_type",
+  "is_stock_item",
+  "tiles_section",
+  "cm_tiles_per_box",
+  "cm_sqm_per_box",
+  "supplier_section",
+  "cm_supplier_name",
+  "cm_supplier_code",
+  "cost_section",
+  "cm_purchase_price_ex_vat",
+  "cm_shipping_percent",
+  "cm_shipping_fee",
+  "cm_handling_fee",
+  "column_break_cost",
+  "cm_other_landed",
+  "cm_delivery_installation_fee",
+  "cm_vat_rate_percent",
+  "cm_landed_additions_total_ex_vat",
+  "cm_cost_ex_vat_calculated",
+  "rrp_section",
+  "cm_target_margin_percent",
+  "cm_rrp_ex_vat",
+  "column_break_rrp",
+  "cm_rrp_inc_vat",
+  "cm_rrp_manual_override",
+  "offer_section",
+  "cm_show_inc_vat",
+  "tier1_col",
+  "cm_offer_tier1_inc_vat",
+  "cm_offer_tier1_ex_vat",
+  "cm_offer_tier1_discount_pct",
+  "tier2_col",
+  "cm_offer_tier2_inc_vat",
+  "cm_offer_tier2_ex_vat",
+  "cm_offer_tier2_discount_pct",
+  "tier3_col",
+  "cm_offer_tier3_inc_vat",
+  "cm_offer_tier3_ex_vat",
+  "cm_offer_tier3_discount_pct"
+ ],
+ "fields": [
+  {
+   "fieldname": "identity_section",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "cm_given_code",
+   "fieldtype": "Data",
+   "label": "CM Product Code",
+   "read_only": 1,
+   "in_list_view": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Supplier Product Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Product Group",
+   "options": "Item Group",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "stock_uom",
+   "fieldtype": "Link",
+   "label": "Unit of Measure",
+   "options": "UOM",
+   "reqd": 1,
+   "default": "EA"
+  },
+  {
+   "fieldname": "cm_details_section",
+   "fieldtype": "Section Break",
+   "label": "CM Details"
+  },
+  {
+   "fieldname": "cm_given_name",
+   "fieldtype": "Data",
+   "label": "CM Name",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cm_description_line_1",
+   "fieldtype": "Data",
+   "label": "Description Line 1"
+  },
+  {
+   "fieldname": "cm_description_line_2",
+   "fieldtype": "Data",
+   "label": "Description Line 2"
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Status & Visibility"
+  },
+  {
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "cm_hidden_from_catalogue",
+   "fieldtype": "Check",
+   "label": "Hidden from Catalogue"
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cm_product_type",
+   "fieldtype": "Select",
+   "label": "Product Type",
+   "options": "\nPrimary\nSecondary"
+  },
+  {
+   "fieldname": "is_stock_item",
+   "fieldtype": "Check",
+   "label": "Stock Item",
+   "default": "1"
+  },
+  {
+   "fieldname": "tiles_section",
+   "fieldtype": "Section Break",
+   "label": "Tile Details",
+   "depends_on": "eval:doc.item_group=='Tiles'"
+  },
+  {
+   "fieldname": "cm_tiles_per_box",
+   "fieldtype": "Int",
+   "label": "Tiles per Box"
+  },
+  {
+   "fieldname": "cm_sqm_per_box",
+   "fieldtype": "Float",
+   "label": "Sqm per Box",
+   "precision": "4"
+  },
+  {
+   "fieldname": "supplier_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier"
+  },
+  {
+   "fieldname": "cm_supplier_name",
+   "fieldtype": "Data",
+   "label": "Supplier Name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Full supplier company name e.g. Ares Mobilificio S.r.l."
+  },
+  {
+   "fieldname": "cm_supplier_code",
+   "fieldtype": "Data",
+   "label": "Supplier Code",
+   "reqd": 1,
+   "description": "3-letter uppercase code used in product code e.g. ARE, MIL"
+  },
+  {
+   "fieldname": "cost_section",
+   "fieldtype": "Section Break",
+   "label": "Cost Inputs"
+  },
+  {
+   "fieldname": "cm_purchase_price_ex_vat",
+   "fieldtype": "Currency",
+   "label": "Purchase Price (ex VAT)"
+  },
+  {
+   "fieldname": "cm_shipping_percent",
+   "fieldtype": "Float",
+   "label": "Shipping %",
+   "precision": "3"
+  },
+  {
+   "fieldname": "cm_shipping_fee",
+   "fieldtype": "Currency",
+   "label": "Shipping Fee (flat)"
+  },
+  {
+   "fieldname": "cm_handling_fee",
+   "fieldtype": "Currency",
+   "label": "Handling Fee"
+  },
+  {
+   "fieldname": "column_break_cost",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cm_other_landed",
+   "fieldtype": "Currency",
+   "label": "Other Landed Costs"
+  },
+  {
+   "fieldname": "cm_delivery_installation_fee",
+   "fieldtype": "Currency",
+   "label": "Delivery & Installation Fee"
+  },
+  {
+   "fieldname": "cm_vat_rate_percent",
+   "fieldtype": "Float",
+   "label": "VAT Rate (%)",
+   "default": "18",
+   "precision": "3"
+  },
+  {
+   "fieldname": "cm_landed_additions_total_ex_vat",
+   "fieldtype": "Currency",
+   "label": "Landed Additions Total (ex VAT)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cm_cost_ex_vat_calculated",
+   "fieldtype": "Currency",
+   "label": "Total Cost (ex VAT)",
+   "read_only": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "rrp_section",
+   "fieldtype": "Section Break",
+   "label": "RRP"
+  },
+  {
+   "fieldname": "cm_target_margin_percent",
+   "fieldtype": "Float",
+   "label": "Target Margin %",
+   "precision": "3",
+   "description": "Enter a target gross margin to auto-suggest RRP. Clear to enter RRP manually."
+  },
+  {
+   "fieldname": "cm_rrp_ex_vat",
+   "fieldtype": "Currency",
+   "label": "RRP (ex VAT)",
+   "bold": 1,
+   "description": "Auto-computed from cost + margin %, but can be overridden manually."
+  },
+  {
+   "fieldname": "column_break_rrp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cm_rrp_inc_vat",
+   "fieldtype": "Currency",
+   "label": "RRP (inc VAT)",
+   "read_only": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "cm_rrp_manual_override",
+   "fieldtype": "Check",
+   "label": "RRP Manual Override",
+   "hidden": 1
+  },
+  {
+   "fieldname": "offer_section",
+   "fieldtype": "Section Break",
+   "label": "Offer Pricing"
+  },
+  {
+   "fieldname": "cm_show_inc_vat",
+   "fieldtype": "Check",
+   "label": "Simplified View (hide ex-VAT breakdown)",
+   "default": "1"
+  },
+  {
+   "fieldname": "tier1_col",
+   "fieldtype": "Column Break",
+   "label": "Tier 1 — Standard"
+  },
+  {
+   "fieldname": "cm_offer_tier1_inc_vat",
+   "fieldtype": "Currency",
+   "label": "Tier 1 Offer (inc VAT)",
+   "bold": 1,
+   "description": "Auto-suggested as RRP × 70%. Edit to override."
+  },
+  {
+   "fieldname": "cm_offer_tier1_ex_vat",
+   "fieldtype": "Currency",
+   "label": "Tier 1 (ex VAT)",
+   "read_only": 1,
+   "depends_on": "eval:!doc.cm_show_inc_vat"
+  },
+  {
+   "fieldname": "cm_offer_tier1_discount_pct",
+   "fieldtype": "Percent",
+   "label": "Tier 1 Discount %",
+   "read_only": 1,
+   "depends_on": "eval:!doc.cm_show_inc_vat"
+  },
+  {
+   "fieldname": "tier2_col",
+   "fieldtype": "Column Break",
+   "label": "Tier 2 — Promotion"
+  },
+  {
+   "fieldname": "cm_offer_tier2_inc_vat",
+   "fieldtype": "Currency",
+   "label": "Tier 2 Offer (inc VAT)",
+   "bold": 1
+  },
+  {
+   "fieldname": "cm_offer_tier2_ex_vat",
+   "fieldtype": "Currency",
+   "label": "Tier 2 (ex VAT)",
+   "read_only": 1,
+   "depends_on": "eval:!doc.cm_show_inc_vat"
+  },
+  {
+   "fieldname": "cm_offer_tier2_discount_pct",
+   "fieldtype": "Percent",
+   "label": "Tier 2 Discount %",
+   "read_only": 1,
+   "depends_on": "eval:!doc.cm_show_inc_vat"
+  },
+  {
+   "fieldname": "tier3_col",
+   "fieldtype": "Column Break",
+   "label": "Tier 3 — Reserved"
+  },
+  {
+   "fieldname": "cm_offer_tier3_inc_vat",
+   "fieldtype": "Currency",
+   "label": "Tier 3 Offer (inc VAT)",
+   "bold": 1
+  },
+  {
+   "fieldname": "cm_offer_tier3_ex_vat",
+   "fieldtype": "Currency",
+   "label": "Tier 3 (ex VAT)",
+   "read_only": 1,
+   "depends_on": "eval:!doc.cm_show_inc_vat"
+  },
+  {
+   "fieldname": "cm_offer_tier3_discount_pct",
+   "fieldtype": "Percent",
+   "label": "Tier 3 Discount %",
+   "read_only": 1,
+   "depends_on": "eval:!doc.cm_show_inc_vat"
+  }
+ ],
+ "links": [],
+ "modified": "2026-04-29 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CM Products",
+ "name": "CM Product",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "CasaModerna Sales Console",
+   "share": 0,
+   "write": 0
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "CasaModerna Product Maintainer",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "cm_given_name,cm_supplier_name,item_name",
+ "sort_field": "cm_given_code",
+ "sort_order": "ASC",
+ "title_field": "cm_given_name",
+ "track_changes": 1
+}

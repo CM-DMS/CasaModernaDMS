@@ -39,7 +39,6 @@ import { PaymentEntryCreate } from './screens/finance/PaymentEntryCreate'
 import { CreditNoteList } from './screens/sales/CreditNoteList'
 import { CreditNoteCreate } from './screens/sales/CreditNoteCreate'
 import { CreditNoteDetail } from './screens/sales/CreditNoteDetail'
-import { SalesSearchScreen } from './screens/sales/SalesSearchScreen'
 import { SupervisorOverridePage } from './screens/sales/SupervisorOverridePage'
 import { ChangePassword } from './screens/auth/ChangePassword'
 import { AdminDeskLogin } from './screens/auth/AdminDeskLogin'
@@ -145,7 +144,7 @@ export default function App() {
               <Route path="/sales/credit-notes" element={<CreditNoteList />} />
               <Route path="/sales/credit-notes/new" element={<CreditNoteCreate />} />
               <Route path="/sales/credit-notes/:id" element={<CreditNoteDetail />} />
-              <Route path="/sales/search" element={<SalesSearchScreen />} />
+
               <Route path="/sales/proformas" element={<ProformaList />} />
               <Route path="/sales/pending" element={<SalesOrderQueue />} />
               <Route path="/sales/queue" element={<SalesOrderQueue />} />

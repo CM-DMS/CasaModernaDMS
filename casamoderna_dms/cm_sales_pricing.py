@@ -85,6 +85,26 @@ def apply_sales_doc_pricing(doc, method=None):
 	)
 	item_map = {i["name"]: i for i in items}
 
+	# Fetch CM Product tier prices for items managed by the new product catalog.
+	# Falls back gracefully if the table does not yet exist (pre-migration).
+	cm_product_map: dict = {}
+	try:
+		cm_product_rows = frappe.get_all(
+			"CM Product",
+			filters={"name": ["in", list(set(item_codes))]},
+			fields=[
+				"name",
+				"cm_rrp_ex_vat", "cm_rrp_inc_vat",
+				"cm_offer_tier1_ex_vat", "cm_offer_tier1_inc_vat",
+				"cm_offer_tier2_ex_vat", "cm_offer_tier2_inc_vat",
+				"cm_offer_tier3_ex_vat", "cm_offer_tier3_inc_vat",
+			],
+			ignore_permissions=True,
+		)
+		cm_product_map = {p["name"]: p for p in cm_product_rows}
+	except Exception:
+		pass  # CM Product table may not exist yet (pre-migration)
+
 	# Build a set of item_codes that have an active DB-persisted override lock
 	# for this specific document.  This covers the submit path and any re-save
 	# after the initial approval save — the transient _price_override_approved
@@ -122,6 +142,40 @@ def apply_sales_doc_pricing(doc, method=None):
 		# won't bleed into amendments (which get a new doc_name like SO000022-1).
 		if item_code in _db_locked_item_codes:
 			continue
+
+		# ── CM Product direct tier pricing ────────────────────────────────────
+		# Items backed by a CM Product record bypass compute_pricing() entirely.
+		# The stored offer tier price is used verbatim, ensuring the sales doc
+		# always reflects exactly what was entered on the product.
+		cm_prod = cm_product_map.get(item_code)
+		if cm_prod:
+			tier   = getattr(row, "cm_offer_tier", None) or "Tier 1"
+			tier_n = {"Tier 1": 1, "Tier 2": 2, "Tier 3": 3}.get(tier, 1)
+			tier_inc = float(cm_prod.get(f"cm_offer_tier{tier_n}_inc_vat") or 0)
+			tier_ex  = float(cm_prod.get(f"cm_offer_tier{tier_n}_ex_vat")  or 0)
+			if tier_inc or tier_ex:
+				target_rate = tier_inc if taxes_included else tier_ex
+				row.rate = target_rate
+				for fn, val in [
+					("cm_rrp_ex_vat",         float(cm_prod.get("cm_rrp_ex_vat")  or 0)),
+					("cm_rrp_inc_vat",        float(cm_prod.get("cm_rrp_inc_vat") or 0)),
+					("cm_final_offer_inc_vat", tier_inc),
+					("cm_final_offer_ex_vat",  tier_ex),
+				]:
+					if hasattr(row, fn):
+						setattr(row, fn, val)
+				# Anchor ERPNext pricing engine so it cannot override our rate.
+				for fn in ("rate_with_margin", "base_rate_with_margin"):
+					if hasattr(row, fn):
+						setattr(row, fn, target_rate)
+				for fn in ("discount_percentage", "discount_amount",
+				           "base_discount_amount", "margin_rate_or_amount"):
+					if hasattr(row, fn):
+						setattr(row, fn, 0)
+				if hasattr(row, "margin_type"):
+					setattr(row, "margin_type", "")
+				changed_any = True
+			continue  # always skip legacy compute_pricing for CM Product rows
 
 		it = item_map.get(item_code)
 		if not it:
