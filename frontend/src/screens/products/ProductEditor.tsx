@@ -218,39 +218,40 @@ export function ProductEditor() {
             />
           </CMField>
 
-          <CMField label="Item Group *">
-            <Typeahead<{ name: string }>
-              value={String(doc.item_group ?? '')}
-              onSearch={(q) =>
-                frappe.getList<{ name: string }>('Item Group', {
-                  fields: ['name'],
-                  filters: [['name', 'like', `%${q}%`]],
-                  limit: 20,
-                })
-              }
-              getLabel={(r) => r.name}
-              getValue={(r) => r.name}
-              onChange={(v) => set('item_group', v)}
-              placeholder="Search item group…"
-            />
-          </CMField>
-
-          <CMField label="Stock UOM *">
-            <Typeahead<{ name: string }>
-              value={String(doc.stock_uom ?? '')}
-              onSearch={(q) =>
-                frappe.getList<{ name: string }>('UOM', {
-                  fields: ['name'],
-                  filters: [['name', 'like', `%${q}%`]],
-                  limit: 20,
-                })
-              }
-              getLabel={(r) => r.name}
-              getValue={(r) => r.name}
-              onChange={(v) => set('stock_uom', v)}
-              placeholder="Search UOM…"
-            />
-          </CMField>
+          <div className="sm:col-span-2 grid grid-cols-2 gap-4">
+            <CMField label="Item Group *">
+              <Typeahead<{ name: string }>
+                value={String(doc.item_group ?? '')}
+                onSearch={(q) =>
+                  frappe.getList<{ name: string }>('Item Group', {
+                    fields: ['name'],
+                    filters: [['name', 'like', `%${q}%`]],
+                    limit: 20,
+                  })
+                }
+                getLabel={(r) => r.name}
+                getValue={(r) => r.name}
+                onChange={(v) => set('item_group', v)}
+                placeholder="Search item group…"
+              />
+            </CMField>
+            <CMField label="Stock UOM *">
+              <Typeahead<{ name: string }>
+                value={String(doc.stock_uom ?? '')}
+                onSearch={(q) =>
+                  frappe.getList<{ name: string }>('UOM', {
+                    fields: ['name'],
+                    filters: [['name', 'like', `%${q}%`]],
+                    limit: 20,
+                  })
+                }
+                getLabel={(r) => r.name}
+                getValue={(r) => r.name}
+                onChange={(v) => set('stock_uom', v)}
+                placeholder="Search UOM…"
+              />
+            </CMField>
+          </div>
 
           <div className="sm:col-span-2">
             <CMField label="Description Line 1">
@@ -697,37 +698,39 @@ export function ProductEditorInline({ doc: initialDoc, onSave, onCancel, hideSup
               onChange={(e) => set('cm_given_name', e.target.value)}
             />
           </CMField>
-          <CMField label="Item Group">
-            <Typeahead<{ name: string }>
-              value={String(doc.item_group ?? '')}
-              onSearch={(q) =>
-                frappe.getList<{ name: string }>('Item Group', {
-                  fields: ['name'],
-                  filters: [['name', 'like', `%${q}%`]],
-                  limit: 20,
-                })
-              }
-              getLabel={(r) => r.name}
-              getValue={(r) => r.name}
-              onChange={(v) => set('item_group', v)}
-            />
-          </CMField>
-          <CMField label="Stock UOM">
-            <Typeahead<{ name: string }>
-              value={String(doc.stock_uom ?? '')}
-              onSearch={(q) =>
-                frappe.getList<{ name: string }>('UOM', {
-                  fields: ['name'],
-                  filters: [['name', 'like', `%${q}%`]],
-                  limit: 20,
-                })
-              }
-              getLabel={(r) => r.name}
-              getValue={(r) => r.name}
-              onChange={(v) => set('stock_uom', v)}
-              placeholder="Search UOM…"
-            />
-          </CMField>
+          <div className="sm:col-span-2 grid grid-cols-2 gap-4">
+            <CMField label="Item Group">
+              <Typeahead<{ name: string }>
+                value={String(doc.item_group ?? '')}
+                onSearch={(q) =>
+                  frappe.getList<{ name: string }>('Item Group', {
+                    fields: ['name'],
+                    filters: [['name', 'like', `%${q}%`]],
+                    limit: 20,
+                  })
+                }
+                getLabel={(r) => r.name}
+                getValue={(r) => r.name}
+                onChange={(v) => set('item_group', v)}
+              />
+            </CMField>
+            <CMField label="Stock UOM">
+              <Typeahead<{ name: string }>
+                value={String(doc.stock_uom ?? '')}
+                onSearch={(q) =>
+                  frappe.getList<{ name: string }>('UOM', {
+                    fields: ['name'],
+                    filters: [['name', 'like', `%${q}%`]],
+                    limit: 20,
+                  })
+                }
+                getLabel={(r) => r.name}
+                getValue={(r) => r.name}
+                onChange={(v) => set('stock_uom', v)}
+                placeholder="Search UOM…"
+              />
+            </CMField>
+          </div>
           <div className="sm:col-span-2">
             <CMField label="Description Line 1">
               <input
