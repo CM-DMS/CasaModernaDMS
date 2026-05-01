@@ -125,8 +125,9 @@
   },
   {
    "fieldname": "image",
-   "fieldtype": "Attach Image",
-   "label": "Product Image"
+   "fieldtype": "Small Text",
+   "label": "Image URL",
+   "description": "Paste an external image URL (https://…). Used in the catalogue and on documents."
   },
   {
    "fieldname": "status_section",

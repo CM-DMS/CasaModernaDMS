@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { PageHeader } from '../../components/shared/ui'
 import { CM } from '../../components/ui/CMClassNames'
+import { CMButton, CMSection } from '../../components/ui/CMComponents'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { priceCalculatorApi } from '../../api/priceCalculator'
 import { fmtMoney } from '../../utils/fmt'
@@ -19,8 +19,9 @@ const STEP_TYPES: { value: StepType; label: string; needsValue: boolean; needsLm
 interface CalcStep {
   _rowId: string
   step_type: StepType
-  step_value: number
-  step_label: string
+  value: number
+  value2: number
+  label: string
 }
 
 interface Calculator {
@@ -51,16 +52,17 @@ function applyFormulaLocal(steps: CalcStep[], basePrice: number, lm: number): { 
   let running = basePrice
   const trace: { step: string; running: number }[] = [{ step: 'Base price', running }]
   for (const s of steps) {
-    const v = Number(s.step_value) || 0
+    const v  = Number(s.value)  || 0
+    const v2 = Number(s.value2) || 0
     switch (s.step_type) {
-      case 'DISCOUNT_PCT':        running = running * (1 - v / 100); break
-      case 'INCREASE_PCT':        running = running * (1 + v / 100); break
-      case 'ADD_FIXED':           running = running + v;             break
-      case 'ADD_FIXED_WEIGHTED':  running = running + v * lm;        break
-      case 'ADD_INSTALL_FROM_LM': running = running + v * lm;        break
-      case 'MULTIPLY':            running = running * v;             break
+      case 'DISCOUNT_PCT':        running = running * (1 - v / 100);         break
+      case 'INCREASE_PCT':        running = running * (1 + v / 100);         break
+      case 'ADD_FIXED':           running = running + v;                     break
+      case 'ADD_FIXED_WEIGHTED':  /* skip — BOM weight unknown in preview */  break
+      case 'ADD_INSTALL_FROM_LM': running = running + (v * lm) + v2;         break
+      case 'MULTIPLY':            running = running * v;                     break
     }
-    trace.push({ step: s.step_label || s.step_type, running })
+    trace.push({ step: s.label || s.step_type, running })
   }
   return trace
 }
@@ -138,29 +140,72 @@ function StepRow({ step, idx, total, onChange, onMove, onRemove, readOnly }: {
   onChange: (s: CalcStep) => void; onMove: (dir: -1 | 1) => void; onRemove: () => void; readOnly: boolean
 }) {
   const meta = STEP_TYPES.find((t) => t.value === step.step_type)
+  const needsValue2 = step.step_type === 'ADD_INSTALL_FROM_LM'
   return (
-    <div className="grid grid-cols-[auto_200px_1fr_90px_auto] gap-2 items-center rounded border border-gray-200 bg-white px-3 py-2">
-      <div className="flex flex-col gap-0.5">
-        <button type="button" disabled={readOnly || idx === 0} onClick={() => onMove(-1)}
-          className="text-gray-400 hover:text-gray-700 disabled:opacity-20 leading-none text-xs">▲</button>
-        <button type="button" disabled={readOnly || idx >= total - 1} onClick={() => onMove(1)}
-          className="text-gray-400 hover:text-gray-700 disabled:opacity-20 leading-none text-xs">▼</button>
-      </div>
-      <div>
-        <select value={step.step_type} onChange={(e) => onChange({ ...step, step_type: e.target.value as StepType })} disabled={readOnly} className={`${CM.select} text-xs py-1`}>
+    <div className="rounded-lg border border-gray-200 bg-white">
+      {/* Row header: number badge + type selector + reorder/remove */}
+      <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2">
+        <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-700">
+          {idx + 1}
+        </span>
+        <select
+          value={step.step_type}
+          onChange={(e) => onChange({ ...step, step_type: e.target.value as StepType })}
+          disabled={readOnly}
+          className={`flex-1 ${CM.select} py-1 text-xs`}
+        >
           {STEP_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
-        {meta && <p className="mt-0.5 text-[10px] text-gray-400">{meta.desc}</p>}
+        {!readOnly && (
+          <div className="flex items-center gap-0.5 text-gray-400">
+            <button type="button" onClick={() => onMove(-1)} disabled={idx === 0}
+              className="rounded p-1 hover:bg-gray-100 disabled:opacity-30" title="Move up">↑</button>
+            <button type="button" onClick={() => onMove(1)} disabled={idx >= total - 1}
+              className="rounded p-1 hover:bg-gray-100 disabled:opacity-30" title="Move down">↓</button>
+            <button type="button" onClick={onRemove}
+              className="rounded p-1 hover:bg-gray-100 hover:text-red-600 ml-1" title="Remove step">✕</button>
+          </div>
+        )}
       </div>
-      <div>
-        <input type="text" value={step.step_label} onChange={(e) => onChange({ ...step, step_label: e.target.value })} disabled={readOnly} placeholder="Label (optional)" className={`${CM.input} text-xs py-1`} />
+
+      {/* Label + value inputs */}
+      <div className={`grid gap-2 px-3 py-2 ${needsValue2 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <input
+          type="text"
+          value={step.label}
+          onChange={(e) => onChange({ ...step, label: e.target.value })}
+          disabled={readOnly}
+          placeholder="Step label (e.g. 1st Discount)"
+          className={`${CM.input} text-xs`}
+        />
+        <input
+          type="number"
+          step="0.0001"
+          min="0"
+          value={step.value ?? ''}
+          onChange={(e) => onChange({ ...step, value: Number(e.target.value) })}
+          disabled={readOnly}
+          placeholder={needsValue2 ? '€ / LM rate' : 'Value'}
+          className={`${CM.input} text-xs`}
+        />
+        {needsValue2 && (
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={step.value2 ?? ''}
+            onChange={(e) => onChange({ ...step, value2: Number(e.target.value) })}
+            disabled={readOnly}
+            placeholder="Fixed € part"
+            className={`${CM.input} text-xs`}
+          />
+        )}
       </div>
-      <div>
-        <input type="number" step="any" value={step.step_value} onChange={(e) => onChange({ ...step, step_value: Number(e.target.value) })} disabled={readOnly} className={`${CM.input} text-xs py-1 text-right tabular-nums`} />
-      </div>
-      <div>
-        {!readOnly && <button type="button" onClick={onRemove} className="rounded p-1.5 text-gray-300 hover:text-red-600" title="Remove step">✕</button>}
-      </div>
+
+      {/* Hint */}
+      {meta && (
+        <p className="px-3 pb-2 text-[11px] text-gray-400">{meta.desc}</p>
+      )}
     </div>
   )
 }
@@ -202,13 +247,13 @@ function FormulaPreview({ steps, requiresLm }: { steps: CalcStep[]; requiresLm: 
   )
 }
 
-function CalcEditor({ calc, onChange, onSave, onDelete, onNew, saving, readOnly }: {
+function CalcEditor({ calc, onChange, onSave, onDelete, saving, saveError, isNew, readOnly }: {
   calc: Calculator; onChange: (c: Calculator) => void
-  onSave: () => void; onDelete: () => void; onNew: () => void
-  saving: boolean; readOnly: boolean
+  onSave: () => void; onDelete: () => void
+  saving: boolean; saveError: string | null; isNew: boolean; readOnly: boolean
 }) {
   function addStep() {
-    onChange({ ...calc, steps: [...calc.steps, { _rowId: Math.random().toString(36).slice(2), step_type: 'DISCOUNT_PCT', step_value: 10, step_label: '' }] })
+    onChange({ ...calc, steps: [...calc.steps, { _rowId: Math.random().toString(36).slice(2), step_type: 'DISCOUNT_PCT', value: 10, value2: 0, label: '' }] })
   }
   function updateStep(idx: number, s: CalcStep) {
     onChange({ ...calc, steps: calc.steps.map((x, i) => i === idx ? s : x) })
@@ -225,33 +270,66 @@ function CalcEditor({ calc, onChange, onSave, onDelete, onNew, saving, readOnly 
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold text-gray-900">{calc.name ? 'Edit Calculator' : 'New Calculator'}</h2>
+    <div className="rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col h-full">
+      {/* Panel header */}
+      <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 flex-shrink-0">
+        <div>
+          <h2 className="font-semibold text-gray-900">
+            {calc.calculator_name || (isNew ? 'New Calculator' : '—')}
+            {calc.calculator_code && (
+              <span className="ml-2 font-mono text-sm font-normal text-gray-400">{calc.calculator_code}</span>
+            )}
+            {!!calc.requires_lm && (
+              <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Requires LM</span>
+            )}
+          </h2>
+        </div>
         <div className="flex gap-2">
-          {calc.name && !readOnly && <button type="button" onClick={onDelete} className={CM.btn.danger}>Delete</button>}
-          <button type="button" onClick={onNew} className={CM.btn.secondary}>+ New</button>
-          {!readOnly && <button type="button" onClick={onSave} disabled={saving} className={CM.btn.primary}>{saving ? 'Saving…' : 'Save'}</button>}
+          {!isNew && !readOnly && (
+            <CMButton variant="danger" onClick={onDelete} disabled={saving}>Delete</CMButton>
+          )}
+          <CMButton variant="primary" onClick={onSave} disabled={saving || readOnly}>
+            {saving ? 'Saving…' : isNew ? 'Create' : 'Save'}
+          </CMButton>
         </div>
       </div>
 
-      <IdentityForm calc={calc} onChange={onChange} readOnly={readOnly} />
+      {saveError && (
+        <div className="mx-5 mt-3 rounded bg-red-50 p-3 text-sm text-red-700 flex-shrink-0">{saveError}</div>
+      )}
 
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-gray-700">Pricing Steps</h3>
-          {!readOnly && <button type="button" onClick={addStep} className={CM.btn.secondary}>+ Add Step</button>}
-        </div>
-        {calc.steps.length === 0 && <p className="text-sm text-gray-400">No steps defined. Add steps to build a pricing formula.</p>}
-        <div className="space-y-2">
-          {calc.steps.map((step, idx) => (
-            <StepRow key={step._rowId} step={step} idx={idx} total={calc.steps.length}
-              onChange={(s) => updateStep(idx, s)} onMove={(dir) => moveStep(idx, dir)} onRemove={() => removeStep(idx)} readOnly={readOnly} />
-          ))}
-        </div>
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+        <CMSection title="Calculator">
+          <IdentityForm calc={calc} onChange={onChange} readOnly={readOnly} />
+        </CMSection>
+
+        <CMSection
+          title={`Formula Steps — ${calc.steps.length} step${calc.steps.length !== 1 ? 's' : ''}`}
+          actions={!readOnly ? (
+            <button type="button" onClick={addStep} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">+ Add Step</button>
+          ) : undefined}
+        >
+          {calc.steps.length === 0 ? (
+            <p className="text-sm text-gray-400 py-2">
+              No steps yet. Click <strong>+ Add Step</strong> to start building the formula.
+            </p>
+          ) : (
+            <div className="mt-1 space-y-2">
+              {calc.steps.map((step, idx) => (
+                <StepRow key={step._rowId} step={step} idx={idx} total={calc.steps.length}
+                  onChange={(s) => updateStep(idx, s)} onMove={(dir) => moveStep(idx, dir)} onRemove={() => removeStep(idx)} readOnly={readOnly} />
+              ))}
+            </div>
+          )}
+        </CMSection>
+
+        {calc.steps.length > 0 && (
+          <CMSection title="Formula Preview">
+            <FormulaPreview steps={calc.steps} requiresLm={!!calc.requires_lm} />
+          </CMSection>
+        )}
       </div>
-
-      {calc.steps.length > 0 && <FormulaPreview steps={calc.steps} requiresLm={!!calc.requires_lm} />}
     </div>
   )
 }
@@ -264,7 +342,8 @@ export function PriceCalculatorAdmin() {
   const [saving, setSaving]       = useState(false)
   const [dirty, setDirty]         = useState(false)
   const [error, setError]         = useState<string | null>(null)
-  const [success, setSuccess]     = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [isNew, setIsNew]         = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -280,28 +359,50 @@ export function PriceCalculatorAdmin() {
 
   useEffect(() => { load() }, [load])
 
-  function handleNew() { setSelected(BLANK_CALC()); setDirty(false); setError(null); setSuccess(null) }
-  function handleSelect(c: Calculator) { setSelected(c); setDirty(false); setError(null); setSuccess(null) }
-
-  function handleChange(c: Calculator) { setSelected(c); setDirty(true) }
+  function handleSelect(c: Calculator) {
+    // Ensure steps have _rowId for React key and default missing fields
+    const hydratedCalc: Calculator = {
+      ...c,
+      pricing_mechanism: c.pricing_mechanism || 'Supplier Ladder',
+      steps: (c.steps ?? []).map((s) => ({
+        ...s,
+        _rowId: (s as unknown as Record<string,string>)['name'] ?? Math.random().toString(36).slice(2),
+        value:  Number(s.value  ?? 0),
+        value2: Number(s.value2 ?? 0),
+        label:  s.label ?? '',
+      })),
+    }
+    setSelected(hydratedCalc); setDirty(false); setError(null); setSaveError(null)
+  }
 
   async function handleSave() {
     if (!selected || !can('canAdmin')) return
+    if (!selected.calculator_name || !selected.calculator_code) {
+      setSaveError('Calculator name and code are required.')
+      return
+    }
     setSaving(true)
+    setSaveError(null)
     setError(null)
-    setSuccess(null)
     try {
       const saved = await priceCalculatorApi.saveCalculator(selected as unknown as Record<string, unknown>)
-      const savedCalc = saved as unknown as Calculator
+      const savedCalc = {
+        ...(saved as unknown as Calculator),
+        steps: ((saved as unknown as Calculator).steps ?? []).map((s) => ({
+          ...s,
+          _rowId: (s as unknown as Record<string,string>)['name'] ?? Math.random().toString(36).slice(2),
+        })),
+      }
       setSelected(savedCalc)
+      setIsNew(false)
       setDirty(false)
-      setSuccess(`"${savedCalc.calculator_name}" saved successfully.`)
       setCalcs((cs) => {
         const exists = cs.some((c) => c.name === savedCalc.name)
-        return exists ? cs.map((c) => c.name === savedCalc.name ? savedCalc : c) : [savedCalc, ...cs]
+        return exists ? cs.map((c) => c.name === savedCalc.name ? savedCalc : c) : [...cs, savedCalc]
       })
+      await load()
     } catch (err: unknown) {
-      setError((err as Error).message || 'Save failed.')
+      setSaveError((err as Error).message || 'Save failed.')
     } finally {
       setSaving(false)
     }
@@ -314,57 +415,93 @@ export function PriceCalculatorAdmin() {
       await priceCalculatorApi.deleteCalculator(selected.name)
       setCalcs((cs) => cs.filter((c) => c.name !== selected.name))
       setSelected(null)
+      setIsNew(false)
       setDirty(false)
-      setSuccess('Calculator deleted.')
     } catch (err: unknown) {
-      setError((err as Error).message || 'Delete failed.')
+      setSaveError((err as Error).message || 'Delete failed.')
     }
+  }
+
+  function handleNew() {
+    if (dirty && !window.confirm('Discard unsaved changes?')) return
+    setSelected(BLANK_CALC())
+    setIsNew(true)
+    setDirty(false)
+    setError(null)
+    setSaveError(null)
   }
 
   if (!can('canAdmin')) return <div className="p-8 text-center text-gray-500">Admin access required.</div>
 
   return (
-    <div>
-      <PageHeader title="Pricing Calculators" subtitle="Define step-based pricing formulas for product configurators" />
-      {error && <div className="mx-6 mt-4 rounded bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      {success && <div className="mx-6 mt-4 rounded bg-green-50 p-3 text-sm text-green-700">{success}</div>}
-
-      <div className="mx-6 mt-6 grid grid-cols-[280px_1fr] gap-6">
-        {/* Left: list */}
+    <div className="flex flex-col h-full">
+      {/* Page header */}
+      <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-0 flex-shrink-0">
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Calculators</h3>
-            <button type="button" onClick={handleNew} className={CM.btn.secondary}>+ New</button>
-          </div>
-          {loading && <div className="text-sm text-gray-500 animate-pulse">Loading…</div>}
-          <div className="space-y-2">
-            {calcs.map((c) => (
-              <CalculatorCard key={c.name ?? c.calculator_name} calc={c} selected={selected?.name === c.name} onClick={() => handleSelect(c)} />
-            ))}
-            {!loading && calcs.length === 0 && <p className="text-sm text-gray-400">No calculators yet.</p>}
-          </div>
+          <h1 className="text-xl font-semibold text-gray-900">Pricing Calculators</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Define step-by-step markup formulas for each product range</p>
+        </div>
+        <CMButton variant="primary" onClick={handleNew}>+ New Calculator</CMButton>
+      </div>
+
+      {error && (
+        <div className="mx-6 mt-3 rounded bg-red-50 p-3 text-sm text-red-700 flex-shrink-0">{error}</div>
+      )}
+
+      {/* Split panel body */}
+      <div className="flex flex-1 gap-6 overflow-hidden px-6 pt-5 pb-6 min-h-0">
+        {/* Left: list */}
+        <div className="w-64 flex-shrink-0 overflow-y-auto space-y-2">
+          {loading && (
+            <p className="px-1 text-sm text-gray-400 animate-pulse">Loading…</p>
+          )}
+          {!loading && calcs.length === 0 && !isNew && (
+            <p className="px-1 text-sm text-gray-400">
+              No calculators yet.{' '}
+              <button type="button" onClick={handleNew} className={`${CM.linkAction} text-sm`}>Create one →</button>
+            </p>
+          )}
+          {calcs.map((c) => (
+            <CalculatorCard key={c.name ?? c.calculator_name} calc={c} selected={!isNew && selected?.name === c.name} onClick={() => {
+              if (dirty && !window.confirm('Discard unsaved changes?')) return
+              handleSelect(c)
+              setIsNew(false)
+              setSaveError(null)
+            }} />
+          ))}
         </div>
 
         {/* Right: editor */}
-        <div>
+        <div className="flex-1 min-h-0">
           {selected ? (
-            <CalcEditor calc={selected} onChange={handleChange} onSave={handleSave} onDelete={handleDelete} onNew={handleNew} saving={saving} readOnly={!can('canAdmin')} />
+            <CalcEditor
+              calc={selected}
+              onChange={(c) => { setSelected(c); setDirty(true) }}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              saving={saving}
+              saveError={saveError}
+              isNew={isNew}
+              readOnly={!can('canAdmin')}
+            />
           ) : (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-              <p className="text-base font-medium">Select a calculator</p>
-              <p className="text-sm mt-1">or create a new one</p>
+            <div className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-gray-200">
+              <p className="text-sm text-gray-400">
+                ← Select a calculator to edit, or{' '}
+                <button type="button" onClick={handleNew} className={`${CM.linkAction} text-sm`}>create a new one</button>
+              </p>
             </div>
           )}
         </div>
       </div>
 
+      {/* Unsaved changes bar */}
       {dirty && (
-        <div className="fixed bottom-0 left-0 right-0 bg-yellow-50 border-t border-yellow-200 px-8 py-3 flex items-center justify-between z-10">
-          <span className="text-sm text-yellow-700 font-medium">You have unsaved changes</span>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => { setDirty(false); if (selected?.name) load() }} className={CM.btn.secondary}>Discard</button>
-            <button type="button" onClick={handleSave} disabled={saving} className={CM.btn.primary}>{saving ? 'Saving…' : 'Save'}</button>
-          </div>
+        <div className="mx-6 mb-4 flex items-center justify-between rounded border border-amber-200 bg-amber-50 px-4 py-2 flex-shrink-0">
+          <span className="text-xs text-amber-800">You have unsaved changes</span>
+          <CMButton variant="primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save Changes'}
+          </CMButton>
         </div>
       )}
     </div>

@@ -204,14 +204,14 @@ def send_invitation(method, recipient):
 	frappe.db.commit()
 
 	if method == "Email":
-		_send_invitation_email(recipient.strip(), link, sender_user)
+		delivered, delivery_error = _send_invitation_email(recipient.strip(), link, sender_user)
 	else:
-		_send_invitation_sms(recipient.strip(), link)
+		delivered, delivery_error = _send_invitation_sms(recipient.strip(), link)
 
-	return {"ok": True, "token": token}
+	return {"ok": True, "token": token, "delivered": delivered, "delivery_error": delivery_error}
 
 
-def _send_invitation_email(to: str, link: str, sender_user: str):
+def _send_invitation_email(to: str, link: str, sender_user: str) -> "tuple[bool, str]":
 	sender_name = frappe.db.get_value("User", sender_user, "full_name") or "Casa Moderna"
 	subject = "Register as a Casa Moderna Customer"
 	message = f"""
@@ -236,20 +236,22 @@ def _send_invitation_email(to: str, link: str, sender_user: str):
 """
 	try:
 		frappe.sendmail(recipients=[to], subject=subject, message=message, now=True)
-	except Exception:
+		return True, ""
+	except Exception as exc:
 		frappe.log_error(frappe.get_traceback(), "Registration invitation email failed")
-		frappe.throw(_("Could not send the invitation email. Please try again."))
+		return False, str(exc)
 
 
-def _send_invitation_sms(to: str, link: str):
+def _send_invitation_sms(to: str, link: str) -> "tuple[bool, str]":
 	from casamoderna_dms.sms_api import send_sms
 	message = (
 		f"Casa Moderna has invited you to register as a customer. "
 		f"Complete your registration here: {link}"
 	)
 	ok = send_sms(to, message, sms_type="Registration Invitation")
-	if not ok:
-		frappe.throw(_("Could not send the invitation SMS. Please check the number and try again."))
+	if ok:
+		return True, ""
+	return False, "SMS delivery failed. The invitation link has been recorded — you can copy it from Sent Links."
 
 
 # ──────────────────────────────────────────────────────────────────────────────

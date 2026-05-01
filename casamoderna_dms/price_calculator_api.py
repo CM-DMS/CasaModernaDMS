@@ -39,7 +39,7 @@ def get_price_calculators():
     docs = frappe.get_all(
         "CM Price Calculator",
         fields=["name", "calculator_name", "calculator_code", "requires_lm",
-                "max_discount_percent", "gozo_surcharge", "notes"],
+                "pricing_mechanism", "max_discount_percent", "gozo_surcharge", "notes"],
         order_by="calculator_name asc",
     )
     for doc in docs:

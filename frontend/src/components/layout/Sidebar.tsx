@@ -72,9 +72,6 @@ export function Sidebar() {
             <NavItem to="/sales/cash-sales"             icon="💵" label="Cash Sales" />
             <NavItem to="/sales/credit-notes"           icon="↩️" label="Credit Notes" />
             <NavItem to="/sales/receipts"               icon="💰" label="Receipts" />
-            {can('canConfirmSO') && (
-              <NavItem to="/sales/queue"                icon="⏳" label="Pending Confirmation" />
-            )}
           </NavGroup>
         )}
 
@@ -171,14 +168,15 @@ export function Sidebar() {
           </NavGroup>
         )}
 
-        {(can('canFinance') || can('canFinanceAccounting') || can('canFinanceReports') || can('canCashHandover') || can('canAdmin')) && (
+        {(can('canCashHandover') || can('canAdmin')) && (
+          <NavGroup heading="Cash">
+            <NavItem to="/finance/collections" icon="💳" label="Daily Collections" />
+            <NavItem to="/finance/handover"    icon="🤝" label="Cash Handover" />
+          </NavGroup>
+        )}
+
+        {(can('canFinance') || can('canFinanceAccounting') || can('canFinanceReports') || can('canAdmin')) && (
           <NavGroup heading="Finance">
-            {(can('canCashHandover') || can('canAdmin')) && (
-              <NavItem to="/finance/collections" icon="💳" label="Daily Collections" />
-            )}
-            {(can('canCashHandover') || can('canAdmin')) && (
-              <NavItem to="/finance/handover"    icon="🤝" label="Cash Handover" />
-            )}
             {(can('canFinanceAccounting') || can('canAdmin')) && (
               <NavItem to="/finance/journals"    icon="📔" label="Journal Entries" />
             )}
@@ -203,9 +201,14 @@ export function Sidebar() {
           </NavGroup>
         )}
 
-        {can('canPriceSupervisor') && (
+        {(can('canPriceSupervisor') || can('canConfirmSO')) && (
           <NavGroup heading="Management">
-            <NavItem to="/supervisor/price-overrides" icon="💲" label="Price Overrides" />
+            {can('canConfirmSO') && (
+              <NavItem to="/sales/queue" icon="⏳" label="Pending Confirmation" />
+            )}
+            {can('canPriceSupervisor') && (
+              <NavItem to="/supervisor/price-overrides" icon="💲" label="Price Overrides" />
+            )}
           </NavGroup>
         )}
 

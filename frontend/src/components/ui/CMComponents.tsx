@@ -6,14 +6,18 @@ import { CM } from './CMClassNames'
 interface CMSectionProps {
   title?: string
   tip?: string
+  actions?: ReactNode
   children: ReactNode
 }
 
-export function CMSection({ title, children }: CMSectionProps) {
+export function CMSection({ title, actions, children }: CMSectionProps) {
   return (
     <div className={CM.section}>
-      {title && (
-        <div className={`${CM.sectionTitle} mb-3`}>{title}</div>
+      {(title || actions) && (
+        <div className="flex items-center justify-between mb-3">
+          {title && <div className={CM.sectionTitle}>{title}</div>}
+          {actions && <div>{actions}</div>}
+        </div>
       )}
       {children}
     </div>

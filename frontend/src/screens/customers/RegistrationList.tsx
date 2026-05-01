@@ -12,6 +12,8 @@ import { frappe } from '../../api/frappe'
 import {
   PageHeader, DataTable, type Column,
 } from '../../components/shared/ui'
+import { CM } from '../../components/ui/CMClassNames'
+import { SendRegistrationLinkModal } from '../../components/customers/SendRegistrationLinkModal'
 
 // ── Submissions ───────────────────────────────────────────────────────────────
 
@@ -234,11 +236,23 @@ function SentLinksTab() {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export function RegistrationList() {
-  const [tab, setTab] = useState<'submissions' | 'sent-links'>('submissions')
+  const [tab, setTab]         = useState<'submissions' | 'sent-links'>('submissions')
+  const [linkModal, setLinkModal] = useState(false)
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Customer Registrations" />
+      <div className="flex items-center justify-between">
+        <PageHeader title="Customer Registrations" />
+        <button
+          type="button"
+          onClick={() => setLinkModal(true)}
+          className={CM.btn.primary}
+        >
+          + Send Registration Link
+        </button>
+      </div>
+
+      <SendRegistrationLinkModal isOpen={linkModal} onClose={() => setLinkModal(false)} />
 
       <div className="flex gap-1 border-b-2 border-gray-200">
         {([['submissions', 'Submissions'], ['sent-links', 'Sent Links']] as const).map(([val, label]) => (
