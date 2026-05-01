@@ -219,15 +219,17 @@ export function Sidebar() {
             <NavItem to="/admin/audit-log"           icon="🛡️" label="Audit Log" />
             <NavItem to="/admin/backup-restore"      icon="💾" label="Backup &amp; Restore" />
             <NavItem to="/admin/data-reset"          icon="🔄" label="Data Reset" />
-            <a
-              href="/app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded text-[13px] transition-colors mb-0.5 text-gray-300 hover:bg-gray-800 hover:text-white"
-            >
-              <span className="text-base leading-none w-5 text-center">⚙️</span>
-              <span className="truncate">System Desk</span>
-            </a>
+            {user?.name === 'brian@casamoderna.mt' && (
+              <a
+                href="/app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 px-3 py-1.5 rounded text-[13px] transition-colors mb-0.5 text-gray-300 hover:bg-gray-800 hover:text-white"
+              >
+                <span className="text-base leading-none w-5 text-center">⚙️</span>
+                <span className="truncate">System Desk</span>
+              </a>
+            )}
           </NavGroup>
         )}
       </nav>
