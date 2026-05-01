@@ -338,6 +338,10 @@ export function ProductSuppliersPricingTab({ item, onRefresh }: Props) {
 
   const rrpOverride = item.cm_rrp_manual_override === 1
   const profit = (item.cm_offer_tier1_ex_vat ?? 0) - (item.cm_cost_ex_vat_calculated ?? 0)
+  const tier1Ex = item.cm_offer_tier1_ex_vat ?? 0
+  const costEx = item.cm_cost_ex_vat_calculated ?? 0
+  const marginPct = tier1Ex > 0 ? ((tier1Ex - costEx) / tier1Ex) * 100 : null
+  const markupPct = costEx > 0 ? ((tier1Ex - costEx) / costEx) * 100 : null
 
   return (
     <div className="space-y-6">
@@ -433,8 +437,8 @@ export function ProductSuppliersPricingTab({ item, onRefresh }: Props) {
         </div>
         <ProfitGrid>
           <ReadMoney label="Profit ex VAT" value={profit > 0 ? profit : null} formatter={fmtMoneyExact} highlight={profit > 0} />
-          <ReadPercent label="Margin %" value={item.cm_margin_percent} highlight marginHealth />
-          <ReadPercent label="Markup %" value={item.cm_markup_percent} />
+          <ReadPercent label="Margin %" value={marginPct} highlight marginHealth />
+          <ReadPercent label="Markup %" value={markupPct} />
         </ProfitGrid>
       </div>
 

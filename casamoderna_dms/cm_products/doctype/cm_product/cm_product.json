@@ -25,6 +25,7 @@
   "tiles_section",
   "cm_tiles_per_box",
   "cm_sqm_per_box",
+  "cm_supplier_pack",
   "supplier_section",
   "cm_supplier_name",
   "cm_supplier_code",
@@ -180,6 +181,12 @@
    "fieldtype": "Float",
    "label": "Sqm per Box",
    "precision": "4"
+  },
+  {
+   "fieldname": "cm_supplier_pack",
+   "fieldtype": "Data",
+   "label": "Supplier Pack",
+   "description": "e.g. 6 boxes/pallet"
   },
   {
    "fieldname": "supplier_section",
