@@ -28,6 +28,10 @@
   "supplier_section",
   "cm_supplier_name",
   "cm_supplier_code",
+  "cm_supplier_variant_description",
+  "column_break_supplier",
+  "cm_supplier_item_code",
+  "cm_supplier_item_name",
   "cost_section",
   "cm_purchase_price_ex_vat",
   "cm_shipping_percent",
@@ -196,6 +200,28 @@
    "label": "Supplier Code",
    "reqd": 1,
    "description": "3-letter uppercase code used in product code e.g. ARE, MIL"
+  },
+  {
+   "fieldname": "cm_supplier_variant_description",
+   "fieldtype": "Data",
+   "label": "Variant Description",
+   "description": "Colour / finish variant as named by supplier"
+  },
+  {
+   "fieldname": "column_break_supplier",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cm_supplier_item_code",
+   "fieldtype": "Data",
+   "label": "Supplier Item Code",
+   "description": "Code used by supplier"
+  },
+  {
+   "fieldname": "cm_supplier_item_name",
+   "fieldtype": "Data",
+   "label": "Supplier Item Name",
+   "description": "Name used by supplier"
   },
   {
    "fieldname": "cost_section",
