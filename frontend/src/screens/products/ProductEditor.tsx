@@ -109,9 +109,9 @@ export function ProductEditor() {
   useEffect(() => {
     if (isNew || !itemCode) return
     setLoading(true)
-    frappe
-      .getDoc<Record<string, unknown>>('CM Product', itemCode)
-      .then((d) => setDoc(d))
+    productsApi
+      .get(decodeURIComponent(itemCode))
+      .then((d) => setDoc(d as unknown as Record<string, unknown>))
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load product'))
       .finally(() => setLoading(false))
   }, [isNew, itemCode])
