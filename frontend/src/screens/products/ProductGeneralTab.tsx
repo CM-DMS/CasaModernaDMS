@@ -333,6 +333,9 @@ export function ProductGeneralTab({ item, onRefresh }: Props) {
                 />
                 <DiscountCard value={item.cm_offer_tier1_discount_pct} />
               </div>
+              <p className="text-[11px] text-gray-400 pt-1">
+                To edit pricing, use the <span className="font-medium text-gray-500">Suppliers &amp; Pricing</span> tab.
+              </p>
             </div>
           )}
 

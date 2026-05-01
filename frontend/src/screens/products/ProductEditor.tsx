@@ -19,10 +19,7 @@ import { CM } from '../../components/ui/CMClassNames'
 import { PageHeader, BackLink, ErrorBox } from '../../components/shared/ui'
 import { Typeahead } from '../../components/sales/Typeahead'
 import { usePermissions } from '../../auth/PermissionsProvider'
-import {
-  customerFacingPrice, normaliseRrpIncVat, DEFAULT_VAT_RATE_PCT,
-  fmtMoneySmart, fmtMoneyWhole, fmtDiscountUI, parsePrice,
-} from '../../utils/pricing'
+
 import { productsApi } from '../../api/products'
 import type { CMProductDoc } from '../../api/products'
 
@@ -101,16 +98,12 @@ export function ProductEditor() {
 
   const isNew = !itemCode
   const canEditProduct = can('canEditProduct') || can('canAdmin')
-  const canSeePricing = can('canSeePricing') || can('canAdmin')
   const canPurchasing = can('canPurchasing') || can('canAdmin')
 
   const [doc, setDoc] = useState<Record<string, unknown>>({ ...BLANK_DOC })
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-
-  const [pricingInputMode] = useState<'discount' | 'offer'>('discount')
-  const [offerInput] = useState('')
 
   // Load existing doc
   useEffect(() => {
@@ -127,16 +120,6 @@ export function ProductEditor() {
     setDoc((prev) => ({ ...prev, [field]: value }))
   }, [])
 
-  const vatRate = parsePrice(doc.cm_vat_rate_percent) ?? DEFAULT_VAT_RATE_PCT
-  const rrpEx = parsePrice(doc.cm_rrp_ex_vat) ?? 0
-  const rrpIncCalc = rrpEx > 0 ? normaliseRrpIncVat(rrpEx, vatRate) : 0
-
-  const offerInputNum = parsePrice(offerInput)
-  const backCalcDisc =
-    offerInputNum != null && rrpIncCalc > 0
-      ? Math.max(0, Math.min(100, (1 - offerInputNum / rrpIncCalc) * 100))
-      : null
-
   // ── Save ───────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!String(doc.item_name ?? '').trim()) { setError('Item Name is required.'); return }
@@ -150,11 +133,7 @@ export function ProductEditor() {
     setSaving(true)
     setError('')
     try {
-      let docToSave = doc
-      if (pricingInputMode === 'offer' && backCalcDisc != null) {
-        docToSave = { ...docToSave, cm_discount_target_percent: backCalcDisc }
-      }
-      const saved = await productsApi.save(docToSave)
+      const saved = await productsApi.save(doc)
       navigate(`/products/${encodeURIComponent(saved.name)}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed.')
@@ -477,32 +456,6 @@ export function ProductEditor() {
         </div>
       </CMSection>
 
-      {/* ── Pricing ── */}
-      {canSeePricing && (
-        <CMSection title="Pricing">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <CMField label="Purchase Price ex VAT">
-              <NumInput value={doc.cm_purchase_price_ex_vat} onChange={(v) => set('cm_purchase_price_ex_vat', v)} />
-            </CMField>
-            <CMField label="VAT Rate %">
-              <NumInput value={doc.cm_vat_rate_percent} onChange={(v) => set('cm_vat_rate_percent', v)} placeholder="23" max="100" />
-            </CMField>
-            <CMField label="Target Margin %">
-              <NumInput value={doc.cm_target_margin_percent} onChange={(v) => set('cm_target_margin_percent', v)} placeholder="30" max="100" />
-            </CMField>
-            <CMField label="RRP ex VAT (leave blank to auto-compute)">
-              <NumInput value={doc.cm_rrp_ex_vat} onChange={(v) => set('cm_rrp_ex_vat', v)} />
-            </CMField>
-            <CMField label="Tier 1 Offer inc VAT (leave blank to auto-compute)">
-              <NumInput value={doc.cm_offer_tier1_inc_vat} onChange={(v) => set('cm_offer_tier1_inc_vat', v)} step="1" />
-            </CMField>
-          </div>
-          <p className="text-[11px] text-gray-400 mt-3">
-            Detailed cost inputs (shipping, handling, landed fees) and tier pricing are in the Suppliers &amp; Pricing tab.
-          </p>
-        </CMSection>
-      )}
-
       {/* ── Supplier ── */}
       {canPurchasing && (
         <CMSection title="Supplier">
@@ -567,8 +520,8 @@ export function ProductEditor() {
 
       {isNew && (
         <div className="rounded border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          After creating the product, use the product detail screen to enter purchase prices,
-          discounts, and landed costs.
+          After creating the product, open the <strong>Suppliers &amp; Pricing</strong> tab to enter
+          purchase prices, costs, RRP, and offer tiers.
         </div>
       )}
 
@@ -693,39 +646,22 @@ interface InlineProps {
 
 export function ProductEditorInline({ doc: initialDoc, onSave, onCancel, hideSupplier }: InlineProps) {
   const { can } = usePermissions()
-  const canSeePricing = can('canSeePricing') || can('canAdmin')
   const canPurchasing = can('canPurchasing') || can('canAdmin')
 
   const [doc, setDoc] = useState<Record<string, unknown>>(initialDoc as unknown as Record<string, unknown>)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [pricingInputMode] = useState<'discount' | 'offer'>('discount')
-  const [offerInput] = useState('')
 
   const set = useCallback((field: string, value: unknown) => {
     setDoc((prev) => ({ ...prev, [field]: value }))
   }, [])
-
-  const vatRate = parsePrice(doc.cm_vat_rate_percent) ?? DEFAULT_VAT_RATE_PCT
-  const rrpEx = parsePrice(doc.cm_rrp_ex_vat) ?? 0
-  const rrpIncCalc = rrpEx > 0 ? normaliseRrpIncVat(rrpEx, vatRate) : 0
-
-  const offerInputNum = parsePrice(offerInput)
-  const backCalcDisc =
-    offerInputNum != null && rrpIncCalc > 0
-      ? Math.max(0, Math.min(100, (1 - offerInputNum / rrpIncCalc) * 100))
-      : null
 
   async function handleSave() {
     if (!String(doc.item_name ?? '').trim()) { setError('Item Name is required.'); return }
     setSaving(true)
     setError('')
     try {
-      let docToSave = doc as unknown as CMProductDoc
-      if (pricingInputMode === 'offer' && backCalcDisc != null) {
-        docToSave = { ...docToSave, cm_discount_target_percent: backCalcDisc } as CMProductDoc
-      }
-      const saved = await productsApi.save(docToSave)
+      const saved = await productsApi.save(doc as unknown as CMProductDoc)
       onSave(saved)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed.')
@@ -873,77 +809,6 @@ export function ProductEditorInline({ doc: initialDoc, onSave, onCancel, hideSup
           </CMField>
         </div>
       </CMSection>
-
-      {/* Pricing */}
-      {canSeePricing && (
-        <CMSection title="Pricing">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <CMField label="RRP excl. VAT">
-              <NumInput value={doc.cm_rrp_ex_vat} onChange={(v) => set('cm_rrp_ex_vat', v)} />
-            </CMField>
-            <CMField label="RRP incl. VAT (calculated)">
-              <div className={`${CM.input} bg-gray-50 text-gray-600 cursor-default`}>
-                {rrpEx > 0 ? fmtMoneySmart(rrpIncCalc) : '—'}
-              </div>
-            </CMField>
-            <div className="sm:col-span-2">
-              <div className="flex gap-2 mb-3">
-                {[
-                  { mode: 'discount' as const, label: 'Set Discount %' },
-                  { mode: 'offer' as const, label: 'Set Offer Price' },
-                ].map(({ mode, label }) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setPricingInputMode(mode)}
-                    className={[
-                      'px-3 py-1.5 rounded text-xs font-medium border transition-colors',
-                      pricingInputMode === mode
-                        ? 'bg-gray-700 text-white border-gray-700'
-                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50',
-                    ].join(' ')}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {pricingInputMode === 'discount' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <CMField label="Target Discount %">
-                    <NumInput value={doc.cm_discount_target_percent} onChange={(v) => set('cm_discount_target_percent', v)} placeholder="0.000" step="0.001" max="100" />
-                  </CMField>
-                  <CMField label="Offer incl. VAT (preview)">
-                    <div className={`${CM.input} bg-gray-50 font-semibold text-cm-green cursor-default`}>
-                      {rrpEx > 0 && discPct >= 0 ? fmtMoneyWhole(previewOffer) : '—'}
-                    </div>
-                  </CMField>
-                  {rrpEx > 0 && discPct > 0 && (
-                    <p className="sm:col-span-2 text-[11px] text-gray-400">
-                      Offer excl. VAT: {fmtMoneySmart(previewOfferEx)}&ensp;·&ensp;Discount: {fmtDiscountUI(discPct)}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <CMField label="Offer incl. VAT">
-                    <NumInput value={offerInput} onChange={(v) => setOfferInput(v)} placeholder="0" step="1" />
-                  </CMField>
-                  <CMField label="Implied discount % (will be saved)">
-                    <div className={`${CM.input} bg-gray-50 text-gray-600 cursor-default`}>
-                      {backCalcDisc != null ? fmtDiscountUI(backCalcDisc) : '—'}
-                    </div>
-                  </CMField>
-                  {backCalcOfferEx != null && (
-                    <p className="sm:col-span-2 text-[11px] text-gray-400">
-                      Offer excl. VAT: {fmtMoneySmart(backCalcOfferEx)}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </CMSection>
-      )}
 
       {/* Supplier */}
       {!hideSupplier && canPurchasing && (
