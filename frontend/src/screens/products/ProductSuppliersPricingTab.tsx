@@ -354,9 +354,9 @@ export function ProductSuppliersPricingTab({ item, onRefresh }: Props) {
   }
 
   const rrpOverride = item.cm_rrp_manual_override === 1
-  const profit = (item.cm_offer_tier1_ex_vat ?? 0) - (item.cm_cost_ex_vat_calculated ?? 0)
-  const tier1Ex = item.cm_offer_tier1_ex_vat ?? 0
-  const costEx = item.cm_cost_ex_vat_calculated ?? 0
+  const tier1Ex = Number(item.cm_offer_tier1_ex_vat ?? 0)
+  const costEx = Number(item.cm_cost_ex_vat_calculated ?? 0)
+  const profit = tier1Ex - costEx
   const marginPct = tier1Ex > 0 ? ((tier1Ex - costEx) / tier1Ex) * 100 : null
   const markupPct = costEx > 0 ? ((tier1Ex - costEx) / costEx) * 100 : null
 
