@@ -151,7 +151,7 @@ class CMProduct(Document):
 			)
 
 		rrp_ex  = _to_d(self.cm_rrp_ex_vat)
-		rrp_inc = _ceil_euro(rrp_ex * vat_mult)
+		rrp_inc = (rrp_ex * vat_mult).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 		self.cm_rrp_inc_vat = float(rrp_inc)
 
 		# ── Tier 1 auto-suggest (RRP × 70%, only when blank) ──
