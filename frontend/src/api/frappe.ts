@@ -271,4 +271,29 @@ export const frappe = {
   post<T = unknown>(path: string, data?: unknown): Promise<T> {
     return request<T>('POST', path, data)
   },
+
+  /** Upload a file to Frappe's /api/method/upload_file endpoint */
+  async uploadFile(
+    file: File,
+    opts: { doctype?: string; docname?: string; fieldname?: string; isPrivate?: boolean },
+  ): Promise<{ file_url: string; name: string }> {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('is_private', opts.isPrivate ? '1' : '0')
+    if (opts.doctype) fd.append('doctype', opts.doctype)
+    if (opts.docname) fd.append('docname', opts.docname)
+    if (opts.fieldname) fd.append('fieldname', opts.fieldname)
+
+    const res = await fetch('/api/method/upload_file', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'X-Frappe-CSRF-Token': getCsrfToken() },
+      body: fd,
+    })
+    const json = (await res.json()) as { message?: { file_url?: string; name?: string } }
+    if (!res.ok || !json?.message?.file_url) {
+      throw new Error('File upload failed')
+    }
+    return { file_url: json.message.file_url!, name: json.message.name ?? '' }
+  },
 }
