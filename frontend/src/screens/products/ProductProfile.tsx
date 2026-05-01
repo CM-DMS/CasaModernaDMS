@@ -9,10 +9,8 @@
  */
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { frappe } from '../../api/frappe'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { PageHeader, BackLink } from '../../components/shared/ui'
-import { CMButton } from '../../components/ui/CMComponents'
 import { productsApi } from '../../api/products'
 import type { CMProductDoc } from '../../api/products'
 import { ProductGeneralTab } from './ProductGeneralTab'
@@ -32,7 +30,6 @@ export function ProductProfile() {
   const navigate = useNavigate()
   const { can } = usePermissions()
 
-  const canEditProduct = can('canEditProduct') || can('canAdmin')
   const canPurchasing = can('canPurchasing') || can('canAdmin')
   const canSeePricing = can('canSeePricing') || can('canAdmin')
   const canStock = can('canStock') || can('canAdmin')
@@ -43,7 +40,6 @@ export function ProductProfile() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<Tab>('general')
-  const [duplicating, setDuplicating] = useState(false)
 
   const tabs: TabDef[] = [
     { id: 'general', label: 'General' },
@@ -77,22 +73,6 @@ export function ProductProfile() {
     if (itemCode) loadItem(decodeURIComponent(itemCode))
   }, [itemCode, loadItem])
 
-  async function handleDuplicate() {
-    if (!item) return
-    setDuplicating(true)
-    try {
-      const copied = await frappe.call<{ name: string }>('frappe.client.copy_doc', {
-        doctype: 'CM Product',
-        name: item.name,
-      })
-      navigate(`/products/${encodeURIComponent(copied.name)}/edit`)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Duplicate failed')
-    } finally {
-      setDuplicating(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -118,28 +98,6 @@ export function ProductProfile() {
       <PageHeader
         title={displayName}
         subtitle={item.name !== displayName ? item.name : undefined}
-        actions={
-          <div className="flex items-center gap-2">
-            {canEditProduct && (
-              <>
-                <CMButton
-                  variant="ghost"
-                  onClick={() => void handleDuplicate()}
-                  disabled={duplicating}
-                >
-                  {duplicating ? 'Duplicating…' : 'Duplicate'}
-                </CMButton>
-                <CMButton
-                  onClick={() =>
-                    navigate(`/products/${encodeURIComponent(item.name)}/edit`)
-                  }
-                >
-                  Edit
-                </CMButton>
-              </>
-            )}
-          </div>
-        }
       />
 
       {/* Tab bar */}
