@@ -60,6 +60,7 @@ def run(xlsx_path: str, dry_run: bool = False) -> None:
             "item_name":            item_name,
             "cm_given_name":        (row.get("cm_given_name") or item_name).strip(),
             "item_group":           (row.get("item_group") or "Tiles").strip(),
+            "cm_product_type":      (row.get("cm_product_type") or "Primary").strip(),
             "cm_supplier_name":     (row.get("cm_supplier_name") or "").strip(),
             "cm_supplier_code":     supplier_code,
             "cm_vat_rate_percent":  float(row.get("cm_vat_rate_percent") or 18),
