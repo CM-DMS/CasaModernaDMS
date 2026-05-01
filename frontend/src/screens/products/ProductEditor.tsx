@@ -712,6 +712,22 @@ export function ProductEditorInline({ doc: initialDoc, onSave, onCancel, hideSup
               onChange={(v) => set('item_group', v)}
             />
           </CMField>
+          <CMField label="Stock UOM">
+            <Typeahead<{ name: string }>
+              value={String(doc.stock_uom ?? '')}
+              onSearch={(q) =>
+                frappe.getList<{ name: string }>('UOM', {
+                  fields: ['name'],
+                  filters: [['name', 'like', `%${q}%`]],
+                  limit: 20,
+                })
+              }
+              getLabel={(r) => r.name}
+              getValue={(r) => r.name}
+              onChange={(v) => set('stock_uom', v)}
+              placeholder="Search UOM…"
+            />
+          </CMField>
           <div className="sm:col-span-2">
             <CMField label="Description Line 1">
               <input
