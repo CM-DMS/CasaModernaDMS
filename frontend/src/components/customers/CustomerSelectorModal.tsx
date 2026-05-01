@@ -1,7 +1,6 @@
 /**
  * CustomerSelectorModal — search and pick a customer.
- * TypeScript port of V2 CustomerSelectorModal.jsx.
- * Uses frappe.getList directly (no separate customersApi in V3).
+ * Uses frappe.getList directly (no separate customersApi).
  */
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { frappe } from '../../api/frappe'

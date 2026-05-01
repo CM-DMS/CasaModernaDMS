@@ -1,5 +1,5 @@
 /**
- * Casa Moderna DMS V3 — Canonical Pricing Utilities (TypeScript port of V2)
+ * Casa Moderna DMS — Canonical Pricing Utilities.
  *
  * Policy:
  *   - Source of truth is cm_rrp_ex_vat — always ex-VAT.

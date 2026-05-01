@@ -1,6 +1,5 @@
 /**
  * SalesDocToolbar — context-aware action bar for sales documents.
- * TypeScript port of V2 SalesDocToolbar.jsx.
  */
 import type { Capabilities } from '../../workflow/documentWorkflow'
 import {

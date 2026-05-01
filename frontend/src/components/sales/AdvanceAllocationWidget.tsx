@@ -1,8 +1,6 @@
 /**
- * AdvanceAllocationWidget — TypeScript port of V2 AdvanceAllocationWidget.jsx.
- *
- * Shows SO-deposit Payment Entries available to offset against a draft Sales
- * Invoice, and lets the user apply/adjust them.
+ * AdvanceAllocationWidget — shows SO-deposit Payment Entries available to offset
+ * against a draft Sales Invoice, and lets the user apply/adjust them.
  */
 import { useState, useEffect, useCallback } from 'react'
 import { frappe } from '../../api/frappe'

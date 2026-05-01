@@ -1,6 +1,5 @@
 /**
  * ConvertModal — lets user pick a conversion target for the current document.
- * TypeScript port of V2 ConvertModal.jsx.
  */
 import { CM } from '../ui/CMClassNames'
 

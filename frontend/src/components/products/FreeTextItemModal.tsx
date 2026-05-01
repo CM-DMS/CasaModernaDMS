@@ -1,6 +1,5 @@
 /**
  * FreeTextItemModal — entry form for a free-text (non-catalogue) line item.
- * TypeScript port of V2 FreeTextItemModal.jsx.
  */
 import { useState, useEffect, useRef } from 'react'
 import { CM } from '../ui/CMClassNames'

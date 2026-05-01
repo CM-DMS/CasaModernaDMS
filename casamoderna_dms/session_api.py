@@ -1,11 +1,11 @@
 """
-session_api.py — Whitelisted endpoints for the V2 DMS frontend session.
+session_api.py — Whitelisted endpoints for the CasaModerna DMS frontend session.
 
 Why this exists
 ---------------
 The Frappe REST endpoint GET /api/resource/User/{name} does NOT reliably
 serialise the 'roles' child table in all Frappe v15 builds — it can return
-null or [] even for a fully-authenticated session.  The V2 React frontend
+null or [] even for a fully-authenticated session.  The React frontend
 therefore calls get_my_roles() instead of trying to parse the User document.
 
 frappe.get_roles() is the authoritative Python API: it reads directly from

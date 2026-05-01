@@ -1,6 +1,5 @@
 /**
  * EmailDocumentModal — send a sales document PDF to a customer via email.
- * TypeScript port of V2 EmailDocumentModal.jsx.
  */
 import { useState } from 'react'
 import { CM } from '../ui/CMClassNames'

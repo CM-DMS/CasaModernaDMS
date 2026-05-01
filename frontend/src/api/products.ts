@@ -83,12 +83,6 @@ export interface CMProductDoc extends CMProductRow {
   [key: string]: unknown
 }
 
-// Legacy alias so any code still importing ItemDoc or ItemSearchRow keeps working
-/** @deprecated use CMProductRow */
-export type ItemSearchRow = CMProductRow
-/** @deprecated use CMProductDoc */
-export type ItemDoc = CMProductDoc
-
 export interface SearchResult {
   rows: CMProductRow[]
   total: number
@@ -163,11 +157,6 @@ export const productsApi = {
   /** Load distinct supplier names present in the active CM Product catalogue. */
   getSuppliers(): Promise<string[]> {
     return frappe.call<string[]>('casamoderna_dms.api.catalogue_search.get_catalogue_suppliers')
-  },
-
-  /** @deprecated use getSuppliers() */
-  getBrands(): Promise<string[]> {
-    return productsApi.getSuppliers()
   },
 
   /**

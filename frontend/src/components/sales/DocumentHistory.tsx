@@ -1,5 +1,5 @@
 /**
- * DocumentHistory — TypeScript port of V2 DocumentHistory.jsx.
+ * DocumentHistory — rich audit trail panel for saved documents.
  *
  * Rich audit trail panel for saved documents. Calls get_doc_history() which
  * merges creation + Version track_changes entries into a chronological timeline.

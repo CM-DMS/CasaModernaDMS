@@ -10,8 +10,8 @@ import subprocess
 import frappe
 
 BACKUP_DIR      = "/home/frappe/backups"
-BACKUP_SCRIPT   = "/home/frappe/ONE-CasaModernaDMS/tools/full-backup.sh"
-RESTORE_SCRIPT  = "/home/frappe/ONE-CasaModernaDMS/tools/restore-backup.sh"
+BACKUP_SCRIPT   = "/home/frappe/CasaModernaDMS/tools/full-backup.sh"
+RESTORE_SCRIPT  = "/home/frappe/CasaModernaDMS/tools/restore-backup.sh"
 ALLOWED_ROLE    = "CM Super Admin"
 
 # Only allow safe filenames: CasaModerna-FULL-YYYYMMDD-HHMMSS.tar.gz

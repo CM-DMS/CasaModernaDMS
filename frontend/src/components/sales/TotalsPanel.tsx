@@ -1,6 +1,5 @@
 /**
  * TotalsPanel — read-only totals display for sales documents.
- * TypeScript port of V2 TotalsPanel.jsx.
  * Rule: NO arithmetic — server-authoritative values only.
  */
 import { fmtMoneyExact } from '../../utils/pricing'

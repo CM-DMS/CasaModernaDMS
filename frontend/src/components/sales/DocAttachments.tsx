@@ -1,6 +1,5 @@
 /**
  * DocAttachments — reusable file attachment panel for any Frappe document.
- * Ported from V2 DocAttachments.jsx.
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { frappe } from '../../api/frappe'

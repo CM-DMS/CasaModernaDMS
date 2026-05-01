@@ -1,5 +1,5 @@
 /**
- * Document Workflow Engine — TypeScript port of V2 documentWorkflow.js
+ * Document Workflow Engine — determines recommended next actions for a document.
  *
  * Returns recommended next actions based on document type, ERPNext docstatus,
  * and user capabilities. Pure function — no side effects, no API calls.

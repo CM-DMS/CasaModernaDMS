@@ -9,10 +9,10 @@ import { CMSection } from '../../components/ui/CMComponents'
 import { frappe } from '../../api/frappe'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import { fmtDate } from '../../utils/pricing'
-import type { ItemDoc } from '../../api/products'
+import type { CMProductDoc } from '../../api/products'
 
 interface Props {
-  item: ItemDoc
+  item: CMProductDoc
 }
 
 const LIMIT = 30

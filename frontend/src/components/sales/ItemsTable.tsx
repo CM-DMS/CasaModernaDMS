@@ -1,6 +1,5 @@
 /**
  * ItemsTable — editable / read-only items grid for all sales documents.
- * TypeScript port of V2 ItemsTable.jsx.
  *
  * Rule: amounts (amount, net_amount) are NEVER calculated here.
  * They are filled from the server response after each save.

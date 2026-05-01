@@ -253,7 +253,7 @@ fixtures = [
 	# fails with a NestedSet parent-not-found error.
 	# Property Setter, Client Script, List View Settings, List Filter
 	# fixtures removed 2026-03-10: Frappe Desk UI restored to ERPNext factory default.
-	# The React frontend (ONE-CasaModernaDMS) does not use Frappe Desk at all.
+	# The React frontend (CasaModernaDMS) does not use Frappe Desk at all.
 	# Backup of the 554 deleted property setters:
 	#   sites/two.casamodernadms.eu/private/files/property_setter_backup_2026-03-10.json
 ]

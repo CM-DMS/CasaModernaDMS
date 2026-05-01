@@ -1,6 +1,5 @@
 /**
  * Typeahead — controlled link-field input with async suggestions.
- * TypeScript port of V2 Typeahead.jsx
  */
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'

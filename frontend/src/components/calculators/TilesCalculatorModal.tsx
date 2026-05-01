@@ -5,7 +5,6 @@
  *   onApply({ qty, sqm, meta }) — called with the computed quantity and serializable meta
  *
  * Client-side math is explicitly allowed here (quantity calculator, not financials).
- * Logic ported from CasaModerna-DMS V1 calc.js → V2 → V3.
  */
 import { useState, useEffect, useMemo } from 'react'
 

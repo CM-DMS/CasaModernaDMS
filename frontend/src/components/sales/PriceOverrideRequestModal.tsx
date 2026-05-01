@@ -1,5 +1,5 @@
 /**
- * PriceOverrideRequestModal — TypeScript port of V2 PriceOverrideRequestModal.jsx.
+ * PriceOverrideRequestModal — handles below-floor pricing approval workflow.
  *
  * Shown when a salesperson attempts to save a document with items priced below
  * their standard offer floor. Creates CM Price Override Requests and polls for

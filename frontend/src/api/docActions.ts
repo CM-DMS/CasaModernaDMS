@@ -1,7 +1,7 @@
 import { frappe } from './frappe'
 
 // ---------------------------------------------------------------------------
-// Conversion API methods — exact values from V2 SalesDocEditor.jsx
+// Conversion API methods — document type conversion targets
 // ---------------------------------------------------------------------------
 const CONVERT_API: Record<string, Record<string, string>> = {
   Quotation: {
@@ -21,7 +21,7 @@ const CONVERT_API: Record<string, Record<string, string>> = {
   },
 }
 
-// Print format names from V2
+// Print format names
 const PRINT_FORMAT: Record<string, string> = {
   Quotation:       'CasaModerna Quotation',
   'Sales Order':   'CasaModerna Sales Order',

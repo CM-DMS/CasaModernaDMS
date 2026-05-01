@@ -6,11 +6,11 @@ import { CMSection } from '../../components/ui/CMComponents'
 import { stockApi } from '../../api/stockBalances'
 import { frappe } from '../../api/frappe'
 import { fmtDate } from '../../utils/pricing'
-import type { ItemDoc } from '../../api/products'
+import type { CMProductDoc } from '../../api/products'
 import type { BinRow, StockLedgerEntry } from '../../api/stockBalances'
 
 interface Props {
-  item: ItemDoc
+  item: CMProductDoc
 }
 
 interface BatchRow {

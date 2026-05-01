@@ -5,7 +5,7 @@ Phase 1 DB dump for v3 rebuild. Run via:
     bench --site two.casamodernadms.eu execute \
       casamoderna_dms.dev_tools.v3_dump_doctypes.run
 
-Output is written to JSON files in /home/frappe/ONE-CasaModernaDMS/docs/v3/db/.
+Output is written to JSON files in /home/frappe/CasaModernaDMS/docs/db.
 Read-only — no DB writes.
 """
 from __future__ import annotations
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import frappe
 
-OUT = Path("/home/frappe/ONE-CasaModernaDMS/docs/v3/db")
+OUT = Path("/home/frappe/CasaModernaDMS/docs/db")
 OUT.mkdir(parents=True, exist_ok=True)
 
 

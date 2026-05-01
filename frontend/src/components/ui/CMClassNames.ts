@@ -1,4 +1,4 @@
-// Centralised className tokens — aligns with V2 CMClassNames.js
+// Centralised className tokens
 
 export const CM = {
   // Page / layout

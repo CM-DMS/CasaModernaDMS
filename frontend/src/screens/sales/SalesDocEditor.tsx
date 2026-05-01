@@ -1,6 +1,5 @@
 /**
  * SalesDocEditor — unified editor for Quotation, Sales Order, Delivery Note, Sales Invoice.
- * TypeScript port of V2 SalesDocEditor.jsx.
  *
  * Design rules:
  *  - NEVER compute grand totals or taxes in React.
@@ -31,10 +30,10 @@ import { PriceOverrideRequestModal } from '../../components/sales/PriceOverrideR
 import { DocumentHistory } from '../../components/sales/DocumentHistory'
 import { AdvanceAllocationWidget } from '../../components/sales/AdvanceAllocationWidget'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — JSX component ported from V2
+// @ts-ignore — ConfiguratorModal is a JSX component without type declarations
 import { ConfiguratorModal } from '../../components/configurators/ConfiguratorModal'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — JSX component ported from V2
+// @ts-ignore — SupplierPriceModal is a JSX component without type declarations
 import { SupplierPriceModal } from '../../components/sales/SupplierPriceModal'
 
 /* ── Constants ──────────────────────────────────────────────────────────────── */

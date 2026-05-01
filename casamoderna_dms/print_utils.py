@@ -10,7 +10,7 @@ import os
 
 # Base directory where sofa measurement images are stored on disk.
 # In production this is the Vite dist output served by nginx.
-_SOFA_IMG_ROOT = "/home/frappe/ONE-CasaModernaDMS/frontend/dist"
+_SOFA_IMG_ROOT = "/home/frappe/CasaModernaDMS/frontend/dist"
 
 
 def sofa_image_to_base64(url_path: str) -> str:
