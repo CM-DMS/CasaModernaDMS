@@ -18,7 +18,7 @@ def _build_html_message(message, doctype, name):
         "frontend", "public", "cm-logo-print.png"
     )
     logo_html = ""
-    for path in [logo_path, "/home/frappe/ONE-CasaModernaDMS/frontend/public/cm-logo-print.png"]:
+    for path in [logo_path]:
         try:
             with open(path, "rb") as f:
                 b64 = base64.b64encode(f.read()).decode()

@@ -14,6 +14,7 @@ import {
   deliverySchedulingApi,
   type DeliveryNoteRow,
   type EmployeeRow,
+  type AppointmentNotificationResult,
 } from '../../api/operations'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -160,21 +161,36 @@ function EventModal({
   onNavigate: (path: string) => void
 }) {
   const { icon, label, sub } = evt._display
-  const [smsSending, setSmsSending] = useState(false)
-  const [smsStatus,  setSmsStatus]  = useState<'sent' | 'error' | null>(null)
+  const [notifSending, setNotifSending] = useState(false)
+  const [notifResult,  setNotifResult]  = useState<AppointmentNotificationResult | null>(null)
+  const [smsSending,   setSmsSending]   = useState(false)
+  const [smsStatus,    setSmsStatus]    = useState<'sent' | 'error' | null>(null)
 
-  const handleSendSms = async () => {
+  const handleSend = async () => {
     if (!evt.name) return
-    setSmsSending(true)
-    setSmsStatus(null)
-    try {
-      if (evt._type === 'delivery')     await smsApi.resendDelivery(evt.name)
-      else if (evt._type === 'appointment') await smsApi.resendConsultation(evt.name)
-      setSmsStatus('sent')
-    } catch {
-      setSmsStatus('error')
-    } finally {
-      setSmsSending(false)
+    if (evt._type === 'appointment') {
+      setNotifSending(true)
+      setNotifResult(null)
+      try {
+        const res = await smsApi.sendAppointmentNotification(evt.name)
+        setNotifResult(res ?? null)
+      } catch (e: unknown) {
+        setNotifResult({ ok: false, sms_sent: false, sms_error: (e as Error).message, email_sent: false, email_error: '' })
+      } finally {
+        setNotifSending(false)
+      }
+    } else {
+      // delivery — SMS only (unchanged)
+      setSmsSending(true)
+      setSmsStatus(null)
+      try {
+        await smsApi.resendDelivery(evt.name)
+        setSmsStatus('sent')
+      } catch {
+        setSmsStatus('error')
+      } finally {
+        setSmsSending(false)
+      }
     }
   }
 
@@ -227,16 +243,24 @@ function EventModal({
           ))}
         </dl>
         {(evt._type === 'delivery' || evt._type === 'appointment') && (
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              onClick={handleSendSms}
-              disabled={smsSending}
-              className="text-xs px-2.5 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
-            >
-              {smsSending ? 'Sending…' : '📱 Send SMS'}
-            </button>
-            {smsStatus === 'sent'  && <span className="text-[11px] text-green-700 font-medium">✓ Sent</span>}
-            {smsStatus === 'error' && <span className="text-[11px] text-red-600 font-medium">✗ Failed</span>}
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSend}
+                disabled={notifSending || smsSending}
+                className="text-xs px-2.5 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                {(notifSending || smsSending) ? 'Sending…' : evt._type === 'appointment' ? '📨 Send Notification' : '📱 Send SMS'}
+              </button>
+              {smsStatus === 'sent'  && <span className="text-[11px] text-green-700 font-medium">✓ Sent</span>}
+              {smsStatus === 'error' && <span className="text-[11px] text-red-600 font-medium">✗ Failed</span>}
+            </div>
+            {notifResult && (
+              <div className={`text-[11px] rounded px-2 py-1.5 ${notifResult.ok ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}`}>
+                <div>{notifResult.email_sent ? '✓ Email sent' : `✗ Email: ${notifResult.email_error || 'not sent'}`}</div>
+                <div>{notifResult.sms_sent   ? '✓ SMS sent'   : `✗ SMS: ${notifResult.sms_error   || 'not sent'}`}</div>
+              </div>
+            )}
           </div>
         )}
         {navPath && (

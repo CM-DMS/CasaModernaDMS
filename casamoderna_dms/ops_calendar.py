@@ -160,12 +160,9 @@ def save_appointment(doc):
 		d.insert()
 	frappe.db.commit()
 
-	if is_new:
-		try:
-			from casamoderna_dms.sms_api import send_consultation_appointment_sms
-			send_consultation_appointment_sms(d.name)
-		except Exception:
-			frappe.log_error(title=f"Consultation SMS failed: {d.name}")
+	# NOTE: appointment notifications (email + SMS) are sent manually via the
+	# "Send Notification" button in the editor.  Auto-send on creation was removed
+	# because it caused duplicate sends when staff also clicked the button.
 
 	return d.as_dict()
 

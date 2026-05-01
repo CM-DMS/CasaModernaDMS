@@ -7,7 +7,7 @@ Sends appointment confirmation SMS to customers for:
 
 Configuration:
   Set `brevo_sms_api_key` in the site's site_config.json:
-    bench --site two.casamodernadms.eu set-config brevo_sms_api_key "YOUR_KEY"
+    bench --site cms.local set-config brevo_sms_api_key "YOUR_KEY"
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ def _get_api_key() -> str | None:
 			title="Brevo SMS: API key not configured",
 			message=(
 				"Set brevo_sms_api_key in site_config.json to enable SMS notifications.\n"
-				"Run: bench --site two.casamodernadms.eu set-config brevo_sms_api_key YOUR_KEY"
+			"Run: bench --site cms.local set-config brevo_sms_api_key YOUR_KEY"
 			),
 		)
 	return key
@@ -236,6 +236,141 @@ def send_consultation_appointment_sms(apt_name: str) -> None:
 		reference_doctype="CM Customer Appointment",
 		reference_name=apt_name,
 	)
+
+
+# ─── Appointment notification (email + SMS, manual only) ─────────────────────
+
+
+def _get_customer_email(customer: str) -> str | None:
+	"""Return the primary email for a Customer record.
+
+	Checks Customer.email_id first, then falls back to the primary Contact email.
+	"""
+	email = frappe.db.get_value("Customer", customer, "email_id")
+	if email:
+		return email
+	# Fall back to primary contact
+	contact = frappe.db.get_value(
+		"Dynamic Link",
+		{"link_doctype": "Customer", "link_name": customer, "parenttype": "Contact"},
+		"parent",
+	)
+	if contact:
+		email = frappe.db.get_value(
+			"Contact Email", {"parent": contact, "is_primary": 1}, "email_id"
+		)
+	return email or None
+
+
+@frappe.whitelist()
+def send_appointment_notification(name: str) -> dict:
+	"""Send BOTH email and SMS to the customer for a CM Customer Appointment.
+
+	This is the single manual "Send Notification" action — it never fires
+	automatically on save, which is the fix for the triple-send bug.
+
+	Returns:
+	  {ok, sms_sent, sms_error, email_sent, email_error}
+	"""
+	doc = frappe.get_doc("CM Customer Appointment", name)
+
+	customer_name = doc.customer_name or doc.customer
+	apt_type      = doc.appointment_type or "appointment"
+	date_str      = frappe.utils.formatdate(str(doc.appointment_date), "dd MMMM yyyy")
+
+	time_str = ""
+	if doc.start_time:
+		time_str = f" at {str(doc.start_time)[:5]}"
+
+	location_str = f" ({doc.location})" if doc.location else ""
+
+	salesperson_display = ""
+	salesperson_name    = ""
+	if doc.salesperson:
+		full_name = frappe.db.get_value("User", doc.salesperson, "full_name")
+		if full_name:
+			salesperson_display = f" with {full_name}"
+			salesperson_name    = full_name
+
+	result: dict = {
+		"ok":          False,
+		"sms_sent":    False,
+		"sms_error":   "",
+		"email_sent":  False,
+		"email_error": "",
+	}
+
+	# ── SMS ──────────────────────────────────────────────────────────────────
+	mobile = _get_customer_mobile(doc.customer)
+	if not mobile:
+		result["sms_error"] = "No mobile number on customer record."
+	else:
+		sms_message = (
+			f"Dear {customer_name}, your Casa Moderna {apt_type} has been confirmed "
+			f"for {date_str}{time_str}{location_str}{salesperson_display}. "
+			f"To reschedule please call {ENQUIRY_PHONE}."
+		)
+		try:
+			ok = send_sms(
+				mobile, sms_message,
+				sms_type="Consultation",
+				customer=doc.customer,
+				reference_doctype="CM Customer Appointment",
+				reference_name=name,
+			)
+			result["sms_sent"] = ok
+			if not ok:
+				result["sms_error"] = "SMS delivery failed — check SMS Log for details."
+		except Exception as exc:
+			result["sms_error"] = str(exc)
+
+	# ── Email ─────────────────────────────────────────────────────────────────
+	email = _get_customer_email(doc.customer)
+	if not email:
+		result["email_error"] = "No email address on customer record."
+	else:
+		subject = f"Your Casa Moderna {apt_type} — {date_str}"
+
+		time_row = ""
+		if doc.start_time:
+			t_end   = f"&nbsp;–&nbsp;{str(doc.end_time)[:5]}" if doc.end_time else ""
+			time_row = f'<tr><td style="padding:4px 16px 4px 0;color:#666;">Time</td><td>{str(doc.start_time)[:5]}{t_end}</td></tr>'
+
+		location_row = ""
+		if doc.location:
+			location_row = f'<tr><td style="padding:4px 16px 4px 0;color:#666;">Location</td><td>{doc.location}</td></tr>'
+
+		consultant_row = ""
+		if salesperson_name:
+			consultant_row = f'<tr><td style="padding:4px 16px 4px 0;color:#666;">Consultant</td><td>{salesperson_name}</td></tr>'
+
+		message = f"""<p>Dear {customer_name},</p>
+<p>Your appointment with Casa Moderna has been confirmed:</p>
+<table style="border-collapse:collapse;margin:12px 0;">
+  <tr><td style="padding:4px 16px 4px 0;color:#666;">Type</td><td><strong>{apt_type}</strong></td></tr>
+  <tr><td style="padding:4px 16px 4px 0;color:#666;">Date</td><td>{date_str}</td></tr>
+  {time_row}
+  {location_row}
+  {consultant_row}
+</table>
+<p>To reschedule or for any queries please call us on <strong>{ENQUIRY_PHONE}</strong>.</p>
+<p>Kind regards,<br/><strong>Casa Moderna</strong></p>
+"""
+		try:
+			frappe.sendmail(
+				recipients=[email],
+				subject=subject,
+				message=message,
+				reference_doctype="CM Customer Appointment",
+				reference_name=name,
+				now=True,
+			)
+			result["email_sent"] = True
+		except Exception as exc:
+			result["email_error"] = str(exc)
+
+	result["ok"] = result["sms_sent"] or result["email_sent"]
+	return result
 
 
 # ─── SMS log query ────────────────────────────────────────────────────────────

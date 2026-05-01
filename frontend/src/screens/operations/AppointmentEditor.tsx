@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
-import { appointmentsApi, smsApi, type AppointmentDoc, type UserRow } from '../../api/operations'
+import { appointmentsApi, smsApi, type AppointmentDoc, type UserRow, type AppointmentNotificationResult } from '../../api/operations'
 import {
   PageHeader, DetailSection, Btn, inputCls, ErrorBox,
 } from '../../components/shared/ui'
@@ -53,10 +53,10 @@ export function AppointmentEditor() {
   const [deleting,     setDeleting]     = useState(false)
   const [error,        setError]        = useState<string | null>(null)
   const [users,        setUsers]        = useState<UserRow[]>([])
-  const [showDelegate, setShowDelegate] = useState(false)
-  const [delegateTo,   setDelegateTo]   = useState('')
-  const [smsSending,   setSmsSending]   = useState(false)
-  const [smsStatus,    setSmsStatus]    = useState<'sent' | 'error' | null>(null)
+  const [showDelegate,  setShowDelegate]  = useState(false)
+  const [delegateTo,    setDelegateTo]    = useState('')
+  const [notifSending,  setNotifSending]  = useState(false)
+  const [notifResult,   setNotifResult]   = useState<AppointmentNotificationResult | null>(null)
 
   // Customer typeahead
   const [custSearch,   setCustSearch]   = useState('')
@@ -141,17 +141,17 @@ export function AppointmentEditor() {
     }
   }
 
-  async function handleSendSms() {
+  async function handleSendNotification() {
     if (!doc.name) return
-    setSmsSending(true)
-    setSmsStatus(null)
+    setNotifSending(true)
+    setNotifResult(null)
     try {
-      await smsApi.resendConsultation(doc.name)
-      setSmsStatus('sent')
-    } catch {
-      setSmsStatus('error')
+      const res = await smsApi.sendAppointmentNotification(doc.name)
+      setNotifResult(res ?? null)
+    } catch (e: unknown) {
+      setNotifResult({ ok: false, sms_sent: false, sms_error: (e as Error).message, email_sent: false, email_error: '' })
     } finally {
-      setSmsSending(false)
+      setNotifSending(false)
     }
   }
 
@@ -175,8 +175,8 @@ export function AppointmentEditor() {
             )}
             <Btn onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Btn>
             {!isNew && (
-              <Btn variant="ghost" onClick={handleSendSms} disabled={smsSending}>
-                {smsSending ? 'Sending…' : '📱 Send SMS'}
+              <Btn variant="ghost" onClick={handleSendNotification} disabled={notifSending}>
+                {notifSending ? 'Sending…' : '📨 Send Notification'}
               </Btn>
             )}
           </div>
@@ -184,8 +184,17 @@ export function AppointmentEditor() {
       />
 
       {error && <ErrorBox message={error} />}
-      {smsStatus === 'sent'  && <div className="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">✓ SMS sent successfully.</div>}
-      {smsStatus === 'error' && <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">✗ SMS failed — check the error log.</div>}
+      {notifResult && (
+        <div className={`rounded border px-4 py-3 text-sm ${
+          notifResult.ok ? 'border-green-200 bg-green-50 text-green-800' : 'border-amber-200 bg-amber-50 text-amber-800'
+        }`}>
+          <div className="font-medium mb-1">{notifResult.ok ? '✓ Notification sent' : '⚠ Notification partial or failed'}</div>
+          <div className="space-y-0.5 text-xs">
+            <div>{notifResult.email_sent ? '✓ Email delivered' : `✗ Email: ${notifResult.email_error || 'not sent'}`}</div>
+            <div>{notifResult.sms_sent   ? '✓ SMS delivered'   : `✗ SMS: ${notifResult.sms_error   || 'not sent'}`}</div>
+          </div>
+        </div>
+      )}
 
       {showDelegate && (
         <DetailSection title="Delegate Appointment">

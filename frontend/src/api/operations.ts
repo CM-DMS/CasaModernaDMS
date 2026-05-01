@@ -143,12 +143,23 @@ export interface SmsLogRow {
   error_message?: string
 }
 
+export interface AppointmentNotificationResult {
+  ok: boolean
+  sms_sent: boolean
+  sms_error: string
+  email_sent: boolean
+  email_error: string
+}
+
 export const smsApi = {
   resendDelivery(name: string) {
     return frappe.call<void>('casamoderna_dms.sms_api.resend_delivery_appointment_sms', { name })
   },
   resendConsultation(name: string) {
     return frappe.call<void>('casamoderna_dms.sms_api.resend_consultation_appointment_sms', { name })
+  },
+  sendAppointmentNotification(name: string) {
+    return frappe.call<AppointmentNotificationResult>('casamoderna_dms.sms_api.send_appointment_notification', { name })
   },
   getLog(args: {
     sms_type?: string
