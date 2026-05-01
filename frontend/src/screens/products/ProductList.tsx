@@ -139,7 +139,11 @@ function ProductCard({ item, query, selected, onCompareToggle, canCompare }: Pro
       onClick={() => navigate(`/products/${encodeURIComponent(item.name)}`)}
     >
       <div className="relative bg-gray-50 aspect-square overflow-hidden">
-        <div className="w-full h-full flex items-center justify-center text-gray-200 text-4xl">🖼</div>
+        {item.image ? (
+          <img src={item.image} alt={displayName} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-200 text-4xl">🖼</div>
+        )}
         {item.disabled ? (
           <span className="absolute top-2 left-2 bg-gray-800 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">INACTIVE</span>
         ) : item.cm_hidden_from_catalogue ? (
