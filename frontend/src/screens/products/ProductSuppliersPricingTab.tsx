@@ -201,6 +201,23 @@ function EditForm({
               onChange={(e) => set('cm_supplier_code', e.target.value)}
             />
           </CMField>
+          <CMField label="Supplier Currency">
+            <input
+              className={CM.input}
+              value={String(draft.cm_supplier_currency ?? '')}
+              onChange={(e) => set('cm_supplier_currency', e.target.value)}
+              placeholder="e.g. EUR, USD"
+              maxLength={10}
+            />
+          </CMField>
+          <CMField label="Lead Time (days)">
+            <NumInput
+              value={draft.lead_time_days ?? null}
+              onChange={(v) => set('lead_time_days', v)}
+              step="1"
+              placeholder="0"
+            />
+          </CMField>
         </div>
       </SubSection>
 
@@ -357,6 +374,8 @@ export function ProductSuppliersPricingTab({ item, onRefresh }: Props) {
           <ReadField label="Supplier Name" value={item.cm_supplier_name} />
           <ReadField label="Supplier Code" value={item.cm_supplier_code} mono />
           <ReadField label="Product Type" value={item.cm_product_type} />
+          <ReadField label="Supplier Currency" value={item.cm_supplier_currency} mono />
+          <ReadField label="Lead Time (days)" value={item.lead_time_days != null ? `${item.lead_time_days}d` : null} />
         </dl>
       </CMSection>
 

@@ -33,6 +33,8 @@
   "column_break_supplier",
   "cm_supplier_item_code",
   "cm_supplier_item_name",
+  "cm_supplier_currency",
+  "lead_time_days",
   "cost_section",
   "cm_purchase_price_ex_vat",
   "cm_shipping_percent",
@@ -229,6 +231,18 @@
    "fieldtype": "Data",
    "label": "Supplier Item Name",
    "description": "Name used by supplier"
+  },
+  {
+   "fieldname": "cm_supplier_currency",
+   "fieldtype": "Data",
+   "label": "Supplier Currency",
+   "description": "Currency code used by supplier e.g. EUR, USD"
+  },
+  {
+   "fieldname": "lead_time_days",
+   "fieldtype": "Int",
+   "label": "Lead Time (days)",
+   "description": "Typical delivery lead time in days"
   },
   {
    "fieldname": "cost_section",
