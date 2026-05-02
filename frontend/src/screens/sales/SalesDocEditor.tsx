@@ -579,7 +579,8 @@ export function SalesDocEditor({
     setError(null)
     try {
       const latest = await frappe.getDoc(doctype, doc.name as string)
-      await frappe.call('frappe.client.submit', { doc: latest })
+      void latest // loaded to confirm doc is current; submit loads fresh from DB
+      await frappe.submitDoc(doctype, doc.name as string)
       const refreshed = await frappe.getDoc<Record<string, unknown>>(doctype, doc.name as string)
       setDoc(refreshed)
       setDirty(false)
@@ -656,7 +657,7 @@ export function SalesDocEditor({
     try {
       if (cancellingDraft) {
         const latest = await frappe.getDoc(doctype, doc.name as string)
-        await frappe.call('frappe.client.submit', { doc: latest })
+        await frappe.submitDoc(doctype, doc.name as string)
       }
       await frappe.call('casamoderna_dms.sales_doc_conversions.cancel_document', {
         doctype,

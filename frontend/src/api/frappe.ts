@@ -179,11 +179,16 @@ async function request<T = unknown>(
 
   if (!res.ok || (json.errors as unknown[])?.length) {
     const code = classifyError(res.status, json)
-    const msg =
+    const serverMsg =
       (json.errors as Array<{ message?: string }>)?.[0]?.message ??
       (json.message as string | undefined) ??
       `HTTP ${res.status}`
-    throw new ApiError(code, msg, res.status)
+    const err = new ApiError(code, serverMsg, res.status)
+    // For validation errors surface the real server message to the user
+    if (code === 'VALIDATION_ERROR' && serverMsg && serverMsg !== `HTTP ${res.status}`) {
+      err.message = serverMsg
+    }
+    throw err
   }
 
   return (json.data !== undefined ? json.data : json) as T
@@ -261,6 +266,14 @@ export const frappe = {
     return request<void>(
       'DELETE',
       `/api/v2/document/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}/`,
+    )
+  },
+
+  /** Submit a document by loading it from DB — avoids partial-doc validation errors */
+  submitDoc<T = unknown>(doctype: string, name: string): Promise<T> {
+    return request<T>(
+      'POST',
+      `/api/v2/document/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}/method/submit`,
     )
   },
 

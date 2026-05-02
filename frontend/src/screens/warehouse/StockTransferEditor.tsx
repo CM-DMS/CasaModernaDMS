@@ -147,7 +147,7 @@ export function StockTransferEditor() {
     setSubmitting(true)
     setError(null)
     try {
-      await frappe.call('frappe.client.submit', { doc: { ...doc, doctype: DOCTYPE } })
+      await frappe.submitDoc(DOCTYPE, doc.name!)
       const refreshed = await frappe.getDoc<StockEntryDoc>(DOCTYPE, doc.name!)
       setDoc(refreshed)
       setDirty(false)
