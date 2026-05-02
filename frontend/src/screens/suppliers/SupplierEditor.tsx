@@ -4,6 +4,7 @@ import { frappe } from '../../api/frappe'
 import {
   PageHeader, ErrorBox, FieldWrap, inputCls, selectCls,
 } from '../../components/shared/ui'
+import { Typeahead } from '../../components/sales/Typeahead'
 import { usePermissions } from '../../auth/PermissionsProvider'
 
 const BLANK_DOC = {
@@ -12,6 +13,7 @@ const BLANK_DOC = {
   cm_supplier_ref_3: '',
   supplier_type: 'Company',
   supplier_group: 'Furniture Manufacturer',
+  country: '',
   mobile_no: '',
   email_id: '',
   tax_id: '',
@@ -48,6 +50,13 @@ export function SupplierEditor() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [supplierGroups, setSupplierGroups] = useState<string[]>(DEFAULT_SUPPLIER_GROUPS)
+
+  const searchCountries = (q: string) =>
+    frappe.call<{ name: string }[]>('frappe.client.get_list', {
+      doctype: 'Country', fields: ['name'],
+      or_filters: [['name', 'like', `%${q}%`]],
+      limit_page_length: 15,
+    })
 
   useEffect(() => {
     frappe.getList('Supplier Group', {
@@ -176,6 +185,18 @@ export function SupplierEditor() {
               <option value="">— select —</option>
               {supplierGroups.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
+          </FieldWrap>
+
+          <FieldWrap label="Country of Origin">
+            <Typeahead<{ name: string }>
+              value={(doc.country as string) || ''}
+              displayValue={(doc.country as string) || ''}
+              onSearch={searchCountries}
+              getLabel={(r) => r.name}
+              getValue={(r) => r.name}
+              onChange={(val) => set('country', val)}
+              placeholder="e.g. Italy"
+            />
           </FieldWrap>
         </div>
       </SectionBox>
