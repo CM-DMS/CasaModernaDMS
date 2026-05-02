@@ -115,6 +115,13 @@ export function StockAdjustmentEditor() {
       limit_page_length: 15,
     })
 
+  const searchUoms = (q: string) =>
+    frappe.call<{ name: string }[]>('frappe.client.get_list', {
+      doctype: 'UOM', fields: ['name'],
+      or_filters: [['name', 'like', `%${q}%`]],
+      limit_page_length: 15,
+    })
+
   const searchWarehouses = (q: string) =>
     frappe.call<WhResult[]>('frappe.client.get_list', {
       doctype: 'Warehouse', fields: ['name'],
@@ -317,11 +324,14 @@ export function StockAdjustmentEditor() {
                     {readOnly ? (
                       <span>{row.uom || '—'}</span>
                     ) : (
-                      <input
-                        className={inputCls + ' w-24'}
+                      <Typeahead<{ name: string }>
                         value={row.uom || ''}
-                        onChange={(e) => patchItem(idx, { uom: e.target.value })}
-                        placeholder="Nos"
+                        displayValue={row.uom || ''}
+                        onSearch={searchUoms}
+                        getLabel={(r) => r.name}
+                        getValue={(r) => r.name}
+                        onChange={(val) => patchItem(idx, { uom: val })}
+                        placeholder="UOM…"
                       />
                     )}
                   </td>
