@@ -299,7 +299,7 @@ export function PaymentEntryCreate() {
 
   const modeOptions = modes.length > 0
     ? modes
-    : ['Cash', 'Bank Transfer', 'Card Payment', 'Cheque', 'Wire Transfer']
+    : ['Cash', 'Bank Transfer', 'Card Payment (MyPOS)', 'Cheque']
 
   // ── Success state ──────────────────────────────────────────────────────────
   if (successName) {

@@ -12,7 +12,7 @@ import { fmtDate } from '../../utils/fmt'
 import { fmtMoneyExact } from '../../utils/pricing'
 import { usePermissions } from '../../auth/PermissionsProvider'
 
-const PAYMENT_MODES = ['Cash', 'Card', 'Bank Draft', 'Cheque', 'Credit Card', 'Wire Transfer']
+const PAYMENT_MODES = ['Cash', 'Card', 'Bank Transfer', 'Cheque', 'Card Payment (MyPOS)']
 
 function blankItem(): Partial<ItemRow> {
   return {
