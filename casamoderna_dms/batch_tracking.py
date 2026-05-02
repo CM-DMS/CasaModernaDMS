@@ -91,6 +91,54 @@ def auto_create_batches(doc, method=None):
         row.batch_no = generated[item_code]
 
 
+# ── Stock Entry hooks ────────────────────────────────────────────────
+
+
+def auto_create_batches_stock_entry(doc, method=None):
+    """before_validate hook on Stock Entry.
+
+    Auto-generates 6-digit batch codes for Material Receipt rows that have
+    has_batch_no=1 but no batch_no assigned yet.  Mirrors the same logic as
+    auto_create_batches (Purchase Receipt) so both stock-income paths produce
+    consistent consignment codes.
+
+    Only runs for stock_entry_type == 'Material Receipt' — transfers and issues
+    do not create new batches.
+    """
+    if getattr(doc, "stock_entry_type", None) != "Material Receipt":
+        return
+    if not getattr(doc, "items", None):
+        return
+
+    batch_flags = {}
+    generated = {}
+
+    for row in doc.items:
+        item_code = getattr(row, "item_code", None)
+        if not item_code:
+            continue
+        if getattr(row, "batch_no", None):
+            continue
+
+        if item_code not in batch_flags:
+            batch_flags[item_code] = frappe.db.get_value("Item", item_code, "has_batch_no")
+        if not batch_flags[item_code]:
+            continue
+
+        if item_code not in generated:
+            code = _generate_batch_code()
+            batch = frappe.get_doc({
+                "doctype": "Batch",
+                "batch_id": code,
+                "item": item_code,
+                "manufacturing_date": doc.posting_date,
+            })
+            batch.insert(ignore_permissions=True)
+            generated[item_code] = code
+
+        row.batch_no = generated[item_code]
+
+
 # ── Whitelisted APIs ────────────────────────────────────────────────
 
 
