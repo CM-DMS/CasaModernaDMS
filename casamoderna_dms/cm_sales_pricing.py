@@ -81,6 +81,7 @@ def apply_sales_doc_pricing(doc, method=None):
 			"cm_rrp_ex_vat",
 			"cm_discount_target_percent",
 			"cm_pricing_rounding_mode",
+			"stock_uom",
 		],
 	)
 	item_map = {i["name"]: i for i in items}
@@ -219,7 +220,15 @@ def apply_sales_doc_pricing(doc, method=None):
 		if rrp_ex_vat is None or rrp_ex_vat == 0:
 			continue
 
-		rounding_mode = (it.get("cm_pricing_rounding_mode") or "whole_euro_roundup").strip()
+		rounding_mode = (it.get("cm_pricing_rounding_mode") or "").strip()
+		if not rounding_mode:
+			# SQM items (tiles) are priced per square metre — decimal prices are
+			# normal; round to 2dp.  All other items default to whole-euro rounding.
+			rounding_mode = (
+				"tile_decimal_pricing"
+				if (it.get("stock_uom") or "").upper() == "SQM"
+				else "whole_euro_roundup"
+			)
 
 		# Target discount input: use discount_percentage if non-zero.
 		# If it is zero, fall back to cm_effective_discount_percent, which is
