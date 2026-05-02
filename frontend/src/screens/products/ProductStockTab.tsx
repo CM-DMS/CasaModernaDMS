@@ -39,15 +39,15 @@ export function ProductStockTab({ item }: Props) {
     setLoading(true)
     setError(null)
     Promise.all([
-      stockApi.getBins({ itemCode: item.item_code }),
+      stockApi.getBins({ itemCode: item.name }),
       item.has_batch_no
         ? frappe
             .call<BatchRow[]>('casamoderna_dms.batch_tracking.get_batch_stock', {
-              item_code: item.item_code,
+              item_code: item.name,
             })
             .catch(() => [] as BatchRow[])
         : Promise.resolve([] as BatchRow[]),
-      stockApi.getLedgerEntries({ itemCode: item.item_code, limit: 10 }).catch(() => []),
+      stockApi.getLedgerEntries({ itemCode: item.name, limit: 10 }).catch(() => []),
     ])
       .then(([binRows, batchRows, ledgerRows]) => {
         setBins(Array.isArray(binRows) ? binRows : [])
@@ -56,7 +56,7 @@ export function ProductStockTab({ item }: Props) {
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load stock'))
       .finally(() => setLoading(false))
-  }, [item.item_code, item.has_batch_no])
+  }, [item.name, item.has_batch_no])
 
   if (loading) {
     return (
