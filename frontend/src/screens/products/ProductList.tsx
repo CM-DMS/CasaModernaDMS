@@ -28,7 +28,7 @@ import { usePermissions } from '../../auth/PermissionsProvider'
 import { CM } from '../../components/ui/CMClassNames'
 import { CMButton } from '../../components/ui/CMComponents'
 import { PageHeader } from '../../components/shared/ui'
-import { fmtMoneySmart, fmtMoneyWhole, fmtDiscountUI } from '../../utils/pricing'
+import { fmtMoneySmart, fmtMoneyWhole, fmtMoneyOffer, fmtDiscountUI } from '../../utils/pricing'
 import { ProductCsvImportModal } from './ProductCsvImportModal'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -173,7 +173,7 @@ function ProductCard({ item, query, selected, onCompareToggle, canCompare }: Pro
           <div>
             {offerIncVat != null && offerIncVat > 0 ? (
               <div className="text-base font-bold text-cm-green">
-                {fmtMoneyWhole(offerIncVat)}
+                {fmtMoneyOffer(offerIncVat, item.stock_uom)}
                 <span className="text-[10px] font-normal text-gray-400 ml-1">incl. VAT</span>
               </div>
             ) : null}
@@ -228,7 +228,7 @@ function ProductRow({ item, query, selected, onCompareToggle, canCompare, canHid
       <td className="py-2.5 pr-3 text-[12px] text-gray-500">{item.item_group}</td>
       <td className="py-2.5 pr-3 text-[12px] text-gray-500">{item.cm_supplier_name}</td>
       <td className="py-2.5 pr-3 text-right tabular-nums text-sm font-semibold text-cm-green">
-        {item.cm_offer_tier1_inc_vat ? fmtMoneyWhole(item.cm_offer_tier1_inc_vat) : '—'}
+        {item.cm_offer_tier1_inc_vat ? fmtMoneyOffer(item.cm_offer_tier1_inc_vat, item.stock_uom) : '—'}
       </td>
       <td className="py-2.5 pr-3 text-right tabular-nums text-[12px] text-gray-400">
         {item.cm_offer_tier1_discount_pct ? fmtDiscountUI(item.cm_offer_tier1_discount_pct) : '—'}
@@ -266,12 +266,12 @@ interface CompareModalProps {
 
 function CompareModal({ items, onClose, onRemove }: CompareModalProps) {
   const navigate = useNavigate()
-  const FIELDS: { key: keyof CMProductRow; label: string; fmt?: (v: unknown) => string }[] = [
+  const FIELDS: { key: keyof CMProductRow; label: string; fmt?: (v: unknown, row: CMProductRow) => string }[] = [
     { key: 'name', label: 'Product Code' },
     { key: 'item_group', label: 'Item Group' },
     { key: 'cm_supplier_name', label: 'Supplier' },
     { key: 'cm_rrp_inc_vat', label: 'RRP incl. VAT', fmt: (v) => (v ? fmtMoneySmart(Number(v)) : '—') },
-    { key: 'cm_offer_tier1_inc_vat', label: 'Offer incl. VAT', fmt: (v) => (v ? fmtMoneyWhole(Number(v)) : '—') },
+    { key: 'cm_offer_tier1_inc_vat', label: 'Offer incl. VAT', fmt: (v, row) => (v ? fmtMoneyOffer(Number(v), row?.stock_uom) : '—') },
     { key: 'cm_offer_tier1_discount_pct', label: 'Discount', fmt: (v) => (v ? fmtDiscountUI(Number(v)) : '—') },
     { key: 'free_stock', label: 'Free Stock', fmt: (v) => String(v ?? '—') },
   ]
@@ -310,7 +310,7 @@ function CompareModal({ items, onClose, onRemove }: CompareModalProps) {
                   <td className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-50">{f.label}</td>
                   {items.map((item) => {
                     const raw = item[f.key as keyof CMProductRow]
-                    const display = f.fmt ? f.fmt(raw) : String(raw ?? '—')
+                    const display = f.fmt ? f.fmt(raw, item) : String(raw ?? '—')
                     return <td key={item.name} className="px-4 py-2.5 text-gray-800">{display}</td>
                   })}
                 </tr>

@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom'
 import { frappe } from '../../api/frappe'
 import { CMSection, CMButton } from '../../components/ui/CMComponents'
 import { CM } from '../../components/ui/CMClassNames'
-import { fmtMoneySmart, fmtMoneyWhole, fmtDiscountUI } from '../../utils/pricing'
+import { fmtMoneySmart, fmtMoneyWhole, fmtMoneyOffer, fmtDiscountUI } from '../../utils/pricing'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import type { CMProductDoc } from '../../api/products'
 import { ProductEditorInline } from './ProductEditor'
@@ -243,10 +243,10 @@ export function ProductGeneralTab({ item, onRefresh }: Props) {
 
   const offerValue =
     vatMode === 'inc' ? item.cm_offer_tier1_inc_vat : item.cm_offer_tier1_ex_vat
-  const offerFmt = vatMode === 'inc' ? fmtMoneyWhole : fmtMoneySmart
+  const offerFmt = vatMode === 'inc' ? (n: number) => fmtMoneyOffer(n, item.stock_uom) : fmtMoneySmart
   const offerSub =
     vatMode === 'inc' ? item.cm_offer_tier1_ex_vat : item.cm_offer_tier1_inc_vat
-  const offerSubFmt = vatMode === 'inc' ? fmtMoneySmart : fmtMoneyWhole
+  const offerSubFmt = vatMode === 'inc' ? fmtMoneySmart : (n: number) => fmtMoneyOffer(n, item.stock_uom)
   const offerSubLabel = vatMode === 'inc' ? 'Exc VAT' : 'Inc VAT'
 
   return (

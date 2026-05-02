@@ -26,14 +26,25 @@ export function normaliseRrpIncVat(rrpExVat: number, vatRatePct = DEFAULT_VAT_RA
   return Math.round(raw3dp * 100) / 100
 }
 
+/** Return true when the item uses 2dp (tile/SQM) pricing rather than whole-euro rounding. */
+export function isTileDecimalPricing(stockUom: string | null | undefined): boolean {
+  return (stockUom ?? '').toUpperCase() === 'SQM'
+}
+
 export function customerFacingPrice(
   rrpExVat: number,
   discountPct = 0,
   vatRatePct = DEFAULT_VAT_RATE_PCT,
+  stockUom?: string | null,
 ): number {
   if (!Number.isFinite(rrpExVat)) return 0
   const rrpIncVat2dp = normaliseRrpIncVat(rrpExVat, vatRatePct)
-  return Math.ceil(rrpIncVat2dp * (1 - discountPct / 100))
+  const raw = rrpIncVat2dp * (1 - discountPct / 100)
+  if (isTileDecimalPricing(stockUom)) {
+    // Tiles: round to nearest cent (2dp)
+    return Math.round(raw * 100) / 100
+  }
+  return Math.ceil(raw)
 }
 
 // ── Display formatters ───────────────────────────────────────────────────────
@@ -52,6 +63,13 @@ export function fmtMoneySmart(n: number): string {
 export function fmtMoneyWhole(n: number): string {
   if (!Number.isFinite(n)) return '—'
   return `€${Math.ceil(n)}`
+}
+
+/** Format a stored offer/RRP price: 2dp for SQM items, whole-euro for all others. */
+export function fmtMoneyOffer(n: number, stockUom?: string | null): string {
+  if (!Number.isFinite(n)) return '—'
+  if (isTileDecimalPricing(stockUom)) return fmtMoneySmart(n)
+  return fmtMoneyWhole(n)
 }
 
 export function fmtDiscountUI(pct: number | null | undefined): string {

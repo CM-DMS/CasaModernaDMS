@@ -17,7 +17,7 @@ import { frappe } from '../../api/frappe'
 import { CMSection, CMButton, CMField } from '../../components/ui/CMComponents'
 import { CM } from '../../components/ui/CMClassNames'
 import { Typeahead } from '../../components/sales/Typeahead'
-import { fmtMoneyExact, fmtMoneyWhole, fmtDiscountUI, fmtDate } from '../../utils/pricing'
+import { fmtMoneyExact, fmtMoneyWhole, fmtMoneyOffer, fmtDiscountUI, fmtDate } from '../../utils/pricing'
 import { productsApi } from '../../api/products'
 import { usePermissions } from '../../auth/PermissionsProvider'
 import type { CMProductDoc } from '../../api/products'
@@ -417,7 +417,7 @@ export function ProductSuppliersPricingTab({ item, onRefresh }: Props) {
               )}
             </dd>
           </div>
-          <ReadMoney label="RRP inc VAT" value={item.cm_rrp_inc_vat} formatter={fmtMoneyWhole} highlight />
+          <ReadMoney label="RRP inc VAT" value={item.cm_rrp_inc_vat} formatter={(n) => fmtMoneyOffer(n, item.stock_uom)} highlight />
         </dl>
       </CMSection>
 
@@ -429,19 +429,19 @@ export function ProductSuppliersPricingTab({ item, onRefresh }: Props) {
         <TierGrid>
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-200 pb-1">Tier 1 (Standard)</span>
-            <ReadMoney label="inc VAT" value={item.cm_offer_tier1_inc_vat} formatter={fmtMoneyWhole} highlight />
+            <ReadMoney label="inc VAT" value={item.cm_offer_tier1_inc_vat} formatter={(n) => fmtMoneyOffer(n, item.stock_uom)} highlight />
             <ReadMoney label="ex VAT" value={item.cm_offer_tier1_ex_vat} />
             <ReadPercent label="Discount %" value={item.cm_offer_tier1_discount_pct} />
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-200 pb-1">Tier 2</span>
-            <ReadMoney label="inc VAT" value={item.cm_offer_tier2_inc_vat} formatter={fmtMoneyWhole} />
+            <ReadMoney label="inc VAT" value={item.cm_offer_tier2_inc_vat} formatter={(n) => fmtMoneyOffer(n, item.stock_uom)} />
             <ReadMoney label="ex VAT" value={item.cm_offer_tier2_ex_vat} />
             <ReadPercent label="Discount %" value={item.cm_offer_tier2_discount_pct} />
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-200 pb-1">Tier 3</span>
-            <ReadMoney label="inc VAT" value={item.cm_offer_tier3_inc_vat} formatter={fmtMoneyWhole} />
+            <ReadMoney label="inc VAT" value={item.cm_offer_tier3_inc_vat} formatter={(n) => fmtMoneyOffer(n, item.stock_uom)} />
             <ReadMoney label="ex VAT" value={item.cm_offer_tier3_ex_vat} />
             <ReadPercent label="Discount %" value={item.cm_offer_tier3_discount_pct} />
           </div>
