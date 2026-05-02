@@ -44,7 +44,7 @@ export function SupplierProfile() {
   const canEdit = can('canPurchasing') || can('canAdmin')
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <button
@@ -68,8 +68,7 @@ export function SupplierProfile() {
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Identity</h2>
-        <dl className="grid grid-cols-2 gap-4 text-sm">
-          <Field label="Group" value={supplier.supplier_group} />
+        <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
           <Field label="Type" value={supplier.supplier_type} />
           <Field label="Country" value={supplier.country} />
           <Field label="Tax ID" value={supplier.tax_id} />
@@ -80,8 +79,7 @@ export function SupplierProfile() {
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Contact</h2>
-        <dl className="grid grid-cols-2 gap-4 text-sm">
-          <Field label="Mobile" value={supplier.mobile_no} />
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
           <Field label="Email" value={supplier.email_id} />
         </dl>
       </div>
@@ -89,7 +87,7 @@ export function SupplierProfile() {
       {(supplier.cm_bank_name || supplier.cm_bank_iban) && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Banking</h2>
-          <dl className="grid grid-cols-2 gap-4 text-sm">
+          <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
             <Field label="Bank" value={supplier.cm_bank_name} />
             <Field label="BIC / SWIFT" value={supplier.cm_bank_bic} />
             <Field label="IBAN" value={supplier.cm_bank_iban} />
