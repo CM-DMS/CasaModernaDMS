@@ -48,7 +48,7 @@ interface SuccessData {
   customer: CustomerOpt
   amount: number
   receiptRef: string
-  result?: { redeemed_date?: string; voucher_name?: string }
+  result?: { redeemed_date?: string; voucher_name?: string; pe_name?: string }
 }
 
 // ── Customer Search Input ─────────────────────────────────────────────────────
@@ -328,6 +328,12 @@ function SuccessStage({
               {data.voucher.voucher_code.match(/.{1,4}/g)?.join('-')}
             </span>
           </p>
+          {data.result?.pe_name && (
+            <p className="text-sm">
+              <span className="text-gray-500">Receipt No:</span>{' '}
+              <span className="font-mono font-semibold">{data.result.pe_name}</span>
+            </p>
+          )}
           {data.receiptRef && (
             <p className="text-sm">
               <span className="text-gray-500">Receipt ref:</span>{' '}
@@ -339,7 +345,20 @@ function SuccessStage({
             {fmtDate(data.result?.redeemed_date ?? new Date().toISOString().slice(0, 10))}
           </p>
         </div>
-        <div className="flex justify-center gap-3 pt-2">
+        <div className="flex justify-center gap-3 pt-2 flex-wrap">
+          {data.result?.pe_name && (
+            <Btn
+              variant="secondary"
+              onClick={() =>
+                window.open(
+                  `/printview?doctype=Payment%20Entry&name=${encodeURIComponent(data.result!.pe_name!)}&format=CasaModerna%20Receipt&no_letterhead=0`,
+                  '_blank',
+                )
+              }
+            >
+              🖨 Print Receipt
+            </Btn>
+          )}
           <Btn onClick={onAnother}>Redeem Another</Btn>
           <Btn variant="ghost" onClick={onViewVoucher}>View Voucher Record</Btn>
         </div>

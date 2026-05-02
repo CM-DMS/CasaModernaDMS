@@ -39,6 +39,16 @@ interface PaymentEntryDoc {
   }>
 }
 
+interface VoucherValidation {
+  name: string
+  voucher_code: string
+  voucher_value: number
+  valid_until: string
+  recipient_customer: string
+  recipient_name?: string
+  status: string
+}
+
 interface FormState {
   party: string
   party_name: string
@@ -51,6 +61,7 @@ interface FormState {
   remarks: string
   reference_invoice: string
   ref_so: string
+  redeem_code: string
 }
 
 function today(): string {
@@ -70,6 +81,7 @@ function blankForm(state: Partial<FormState> = {}): FormState {
     remarks: '',
     reference_invoice: state.reference_invoice ?? '',
     ref_so: state.ref_so ?? '',
+    redeem_code: '',
   }
 }
 
@@ -92,6 +104,9 @@ export function PaymentEntryCreate() {
   const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
   const [successName, setSuccessName] = useState('')
+  const [validatedVoucher, setValidatedVoucher] = useState<VoucherValidation | null>(null)
+  const [voucherError, setVoucherError] = useState('')
+  const [validating, setValidating] = useState(false)
 
   // Load modes of payment
   useEffect(() => {
@@ -153,6 +168,28 @@ export function PaymentEntryCreate() {
     })
   }
 
+  const handleValidateVoucher = async () => {
+    setVoucherError('')
+    setValidatedVoucher(null)
+    const code = form.redeem_code.replace(/-/g, '')
+    if (code.length < 8) { setVoucherError('Please enter a valid voucher code.'); return }
+    setValidating(true)
+    try {
+      const v = await frappe.call<VoucherValidation>(
+        'casamoderna_dms.voucher_api.validate_voucher_for_payment',
+        { voucher_code: form.redeem_code, customer: form.party || '', amount: 0 },
+      )
+      if (v) {
+        setValidatedVoucher(v)
+        patch({ paid_amount: String(v.voucher_value) })
+      }
+    } catch (e: unknown) {
+      setVoucherError((e as Error).message || 'Voucher not found or not valid for payment.')
+    } finally {
+      setValidating(false)
+    }
+  }
+
   const handlePost = async () => {
     setError('')
     if (!form.party) { setError('Customer is required.'); return }
@@ -160,6 +197,32 @@ export function PaymentEntryCreate() {
       setError('Paid amount must be greater than 0.')
       return
     }
+
+    // ── Gift Voucher mode: redemption via backend endpoint ─────────────────
+    if (form.mode_of_payment === 'Gift Voucher') {
+      if (!validatedVoucher) { setError('Validate the voucher code first.'); return }
+      if (!window.confirm(`Redeem voucher for ${fmtMoney(Number(form.paid_amount))} against ${form.party_name || form.party}?`)) return
+      setPosting(true)
+      try {
+        const result = await frappe.call<{ pe_name: string }>(
+          'casamoderna_dms.voucher_api.redeem_voucher_by_code_with_pe',
+          {
+            voucher_code: form.redeem_code,
+            customer: form.party,
+            amount: Number(form.paid_amount),
+            party_name: form.party_name || '',
+            posting_date: form.posting_date || '',
+          },
+        )
+        setSuccessName(result?.pe_name ?? '')
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Voucher redemption failed.')
+      } finally {
+        setPosting(false)
+      }
+      return
+    }
+
     if (!window.confirm('Post this payment? It will be submitted immediately.')) return
 
     setPosting(true)
@@ -199,7 +262,7 @@ export function PaymentEntryCreate() {
         mode_of_payment: form.mode_of_payment,
         paid_from: 'Debtors - CM',
         paid_from_account_currency: 'EUR',
-        paid_to: 'Cash - CM',
+        paid_to: form.payment_purpose === 'Voucher Purchase' ? 'Gift Vouchers - CM' : 'Cash - CM',
         paid_to_account_currency: 'EUR',
         reference_no: form.reference_no.trim() || form.posting_date,
         reference_date: form.reference_date || form.posting_date,
@@ -212,6 +275,20 @@ export function PaymentEntryCreate() {
       const saved = await frappe.saveDoc<PaymentEntryDoc>('Payment Entry', peDoc)
       // Submit
       await frappe.post(`/api/v2/document/Payment%20Entry/${encodeURIComponent(saved.name ?? '')}/submit`)
+
+      // Voucher Purchase: hand off to voucher creation with receipt pre-filled
+      if (form.payment_purpose === 'Voucher Purchase') {
+        navigate('/customers/vouchers/new', {
+          state: {
+            fromReceipt: saved.name,
+            party:       form.party,
+            party_name:  form.party_name,
+            paid_amount: form.paid_amount,
+          },
+        })
+        return
+      }
+
       setSuccessName(saved.name ?? '')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to post payment')
@@ -377,6 +454,7 @@ export function PaymentEntryCreate() {
               <option value="Deposit">Deposit (advance against Sales Order)</option>
               <option value="Invoice Settlement">Invoice Settlement</option>
               <option value="Payment on Account">Payment on Account</option>
+              <option value="Voucher Purchase">Voucher Purchase (customer buying a gift voucher)</option>
             </select>
           </CMField>
 
@@ -446,11 +524,16 @@ export function PaymentEntryCreate() {
               <select
                 className={CM.select}
                 value={form.mode_of_payment}
-                onChange={(e) => patch({ mode_of_payment: e.target.value })}
+                onChange={(e) => {
+                  patch({ mode_of_payment: e.target.value, redeem_code: '' })
+                  setValidatedVoucher(null)
+                  setVoucherError('')
+                }}
               >
-                {modeOptions.map((m) => (
+                {modeOptions.filter((m) => m !== 'Gift Voucher').map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
+                {can('canVouchers') && <option value="Gift Voucher">🎟️ Gift Voucher</option>}
               </select>
             </CMField>
 
@@ -465,6 +548,52 @@ export function PaymentEntryCreate() {
                 placeholder="0.00"
               />
             </CMField>
+
+            {form.mode_of_payment === 'Gift Voucher' && (
+              <div className="col-span-2 space-y-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-xs text-amber-800">
+                  🎟️ Non-transferable — the voucher must be issued to the customer selected above.
+                </p>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <label className={CM.label}>Voucher Code *</label>
+                    <input
+                      className={`${CM.input} font-mono uppercase tracking-widest`}
+                      value={form.redeem_code}
+                      onChange={(e) => {
+                        const clean = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12)
+                        const fmt = clean.match(/.{1,4}/g)?.join('-') ?? clean
+                        patch({ redeem_code: fmt })
+                        setValidatedVoucher(null)
+                        setVoucherError('')
+                      }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleValidateVoucher()}
+                      placeholder="XXXX-XXXX-XXXX"
+                      maxLength={14}
+                    />
+                  </div>
+                  <CMButton
+                    variant="secondary"
+                    onClick={handleValidateVoucher}
+                    disabled={validating || !form.redeem_code.trim()}
+                  >
+                    {validating ? 'Checking…' : '🔍 Validate'}
+                  </CMButton>
+                </div>
+                {voucherError && <p className="text-sm text-red-600">{voucherError}</p>}
+                {validatedVoucher && (
+                  <div className="rounded border border-green-200 bg-green-50 px-3 py-2 space-y-1">
+                    <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">✓ Valid voucher</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div><span className="text-gray-500">Face value: </span><strong>{fmtMoney(validatedVoucher.voucher_value)}</strong></div>
+                      <div><span className="text-gray-500">Valid until: </span><span>{fmtDate(validatedVoucher.valid_until)}</span></div>
+                      <div><span className="text-gray-500">Issued to: </span><span>{validatedVoucher.recipient_name || validatedVoucher.recipient_customer}</span></div>
+                      <div><span className="text-gray-500">Status: </span><span>{validatedVoucher.status}</span></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <CMField label="Posting Date *">
               <input
