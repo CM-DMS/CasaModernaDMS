@@ -284,7 +284,7 @@ export function SupplierEditor() {
 
       <SectionBox title="Internal Notes">
         <textarea
-          className={inputCls + ' min-h-[80px] resize-y'}
+          className={inputCls + ' min-h-[200px] resize-y w-full'}
           value={(doc.cm_internal_notes as string) ?? ''}
           onChange={(e) => set('cm_internal_notes', e.target.value)}
           placeholder="Private notes visible to staff only…"
