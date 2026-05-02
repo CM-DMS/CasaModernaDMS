@@ -61,6 +61,9 @@ doc_events = {
 		"before_validate": [
 			"casamoderna_dms.batch_tracking.auto_create_batches_stock_entry",
 		],
+		"before_submit": [
+			"casamoderna_dms.batch_tracking.auto_create_batches_stock_entry",
+		],
 	},
 	"Purchase Order": {
 		"before_validate": [

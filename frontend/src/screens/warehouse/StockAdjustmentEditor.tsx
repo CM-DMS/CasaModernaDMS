@@ -28,6 +28,7 @@ interface StockEntryDetail {
   t_warehouse?: string
   basic_rate?: number
   basic_amount?: number
+  batch_no?: string
 }
 
 interface StockEntryDoc {
@@ -45,6 +46,7 @@ const blankItem = (): StockEntryDetail => ({
   doctype: 'Stock Entry Detail',
   item_code: '', item_name: '', qty: 1, uom: '',
   s_warehouse: '', t_warehouse: '', basic_rate: 0, basic_amount: 0,
+  batch_no: '',
 })
 
 const blankDoc = (type = 'Material Receipt'): StockEntryDoc => ({
@@ -269,6 +271,7 @@ export function StockAdjustmentEditor() {
                 {!isReceipt && <th className="pb-2 pr-3">From (Warehouse)</th>}
                 {isReceipt  && <th className="pb-2 pr-3">To (Warehouse)</th>}
                 {isReceipt  && <th className="pb-2 pr-3 w-28">Unit Cost</th>}
+                {isReceipt  && <th className="pb-2 pr-3 w-28">Batch No</th>}
                 {!readOnly  && <th className="pb-2 w-8" />}
               </tr>
             </thead>
@@ -354,6 +357,22 @@ export function StockAdjustmentEditor() {
                             const rate = parseFloat(e.target.value) || 0
                             patchItem(idx, { basic_rate: rate, basic_amount: rate * (row.qty || 0) })
                           }}
+                        />
+                      )}
+                    </td>
+                  )}
+
+                  {isReceipt && (
+                    <td className="py-2 pr-3">
+                      {readOnly ? (
+                        <span className="font-mono text-xs">{row.batch_no || <span className="text-gray-400 italic">auto</span>}</span>
+                      ) : (
+                        <input
+                          className={inputCls + ' w-28 font-mono text-xs'}
+                          value={row.batch_no || ''}
+                          onChange={(e) => patchItem(idx, { batch_no: e.target.value })}
+                          placeholder="auto"
+                          title="Leave blank to auto-assign a 6-digit code on save"
                         />
                       )}
                     </td>
