@@ -24,7 +24,7 @@ import { usePermissions } from '../../auth/PermissionsProvider'
 import { useAuth } from '../../auth/AuthProvider'
 import { Typeahead } from '../../components/sales/Typeahead'
 import { DocAttachments } from '../../components/sales/DocAttachments'
-import { TilesCalculatorModal } from '../../components/calculators/TilesCalculatorModal'
+import { StandaloneTilesCalculator } from '../../components/calculators/StandaloneTilesCalculator'
 import { EmailDocumentModal } from '../../components/sales/EmailDocumentModal'
 import { PriceOverrideRequestModal } from '../../components/sales/PriceOverrideRequestModal'
 import { DocumentHistory } from '../../components/sales/DocumentHistory'
@@ -1441,15 +1441,18 @@ export function SalesDocEditor({
         />
       )}
 
-      {/* Tiles calculator */}
-      <TilesCalculatorModal
+      {/* Tiles calculator — StandaloneTilesCalculator handles both standalone (no line) and
+           per-row (with apply) modes. When a line is passed, tile details (sqm/box, size,
+           tiles/box) are auto-loaded from the item's custom fields. */}
+      <StandaloneTilesCalculator
         isOpen={showTilesCalc || tilesLine !== null}
         onClose={() => { setShowTilesCalc(false); setTilesLine(null) }}
-        line={tilesLine !== null ? (((doc.items as ItemRow[]) || [])[tilesLine] ?? null) as any : null}
+        line={tilesLine !== null ? (((doc.items as ItemRow[]) || [])[tilesLine] ?? null) as Record<string, unknown> : null}
         onApply={tilesLine !== null ? ({ sqm, meta }: { qty: number; sqm: number; meta: unknown }) => {
           handleItemChange(tilesLine!, { qty: sqm, cm_tiles_calc_meta: JSON.stringify(meta) } as any)
           setTilesLine(null)
-        } : undefined}
+        } : null}
+        storageKey={tilesLine === null && doc?.name ? `tc:${doc.doctype ?? ''}:${doc.name}` : null}
       />
 
       {/* Configurator */}
