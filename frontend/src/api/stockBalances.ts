@@ -76,7 +76,7 @@ export const stockApi = {
     const fetchChunk = (codes?: string[]) => {
       const filters: Array<[string, string, unknown]> = []
       if (codes && codes.length > 0) filters.push(['item_code', 'in', codes])
-      else if (itemCode) filters.push(['item_code', 'like', `%${itemCode}%`])
+      else if (itemCode) filters.push(['item_code', '=', itemCode])
       if (warehouse) filters.push(['warehouse', 'like', `%${warehouse}%`])
       filters.push(['actual_qty', '!=', 0])
       return frappe.getList<BinRow>('Bin', {
@@ -118,7 +118,7 @@ export const stockApi = {
     limitStart?: number
   } = {}): Promise<StockLedgerEntry[]> {
     const filters: Array<[string, string, string]> = []
-    if (itemCode) filters.push(['item_code', 'like', `%${itemCode}%`])
+    if (itemCode) filters.push(['item_code', '=', itemCode])
     if (warehouse) filters.push(['warehouse', 'like', `%${warehouse}%`])
     if (fromDate) filters.push(['posting_date', '>=', fromDate])
     if (toDate) filters.push(['posting_date', '<=', toDate])
