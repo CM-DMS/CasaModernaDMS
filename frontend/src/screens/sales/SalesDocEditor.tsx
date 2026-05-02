@@ -239,6 +239,7 @@ export function SalesDocEditor({
   const [cfgJumpTo, setCfgJumpTo] = useState<string | null>(null)
   const [showTilesCalc, setShowTilesCalc] = useState(false)
   const [tilesLine, setTilesLine] = useState<number | null>(null)
+  const [enrichedTileLine, setEnrichedTileLine] = useState<Record<string, unknown> | null>(null)
   const [calcModalRow, setCalcModalRow] = useState<number | null>(null)
   const [pendingFreeTextCalc, setPendingFreeTextCalc] = useState<Partial<ItemRow> | null>(null)
 
@@ -1058,7 +1059,27 @@ export function SalesDocEditor({
                 onRemoveRow={handleRemoveRow}
                 onMoveUp={handleMoveUp}
                 onMoveDown={handleMoveDown}
-                onTilesCalc={(idx) => setTilesLine(idx)}
+                onTilesCalc={async (idx) => {
+                  const row = ((doc.items as ItemRow[]) || [])[idx]
+                  setTilesLine(idx)
+                  // Fetch tile fields from Item master if not already on the row
+                  if (!row?.cm_sqm_per_box && row?.item_code) {
+                    try {
+                      const item = await frappe.getDoc<Record<string, unknown>>('Item', String(row.item_code))
+                      setEnrichedTileLine({
+                        ...row,
+                        cm_sqm_per_box:   item.cm_sqm_per_box,
+                        cm_tiles_per_box: item.cm_tiles_per_box,
+                        cm_tile_size_cm:  item.cm_tile_size_cm,
+                        item_name:        row.item_name || item.item_name,
+                      })
+                    } catch {
+                      setEnrichedTileLine(null)
+                    }
+                  } else {
+                    setEnrichedTileLine(null)
+                  }
+                }}
               />
               {!readOnly && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -1446,11 +1467,13 @@ export function SalesDocEditor({
            tiles/box) are auto-loaded from the item's custom fields. */}
       <StandaloneTilesCalculator
         isOpen={showTilesCalc || tilesLine !== null}
-        onClose={() => { setShowTilesCalc(false); setTilesLine(null) }}
-        line={tilesLine !== null ? (((doc.items as ItemRow[]) || [])[tilesLine] ?? null) as Record<string, unknown> : null}
+        onClose={() => { setShowTilesCalc(false); setTilesLine(null); setEnrichedTileLine(null) }}
+        line={tilesLine !== null
+          ? (enrichedTileLine ?? (((doc.items as ItemRow[]) || [])[tilesLine] ?? null) as Record<string, unknown>)
+          : null}
         onApply={tilesLine !== null ? ({ sqm, meta }: { qty: number; sqm: number; meta: unknown }) => {
           handleItemChange(tilesLine!, { qty: sqm, cm_tiles_calc_meta: JSON.stringify(meta) } as any)
-          setTilesLine(null)
+          setTilesLine(null); setEnrichedTileLine(null)
         } : null}
         storageKey={tilesLine === null && doc?.name ? `tc:${doc.doctype ?? ''}:${doc.name}` : null}
       />

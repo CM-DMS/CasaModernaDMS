@@ -59,8 +59,12 @@ function lineTileDims(line: Record<string, unknown> | null): { w: number; h: num
   const explicit = p((line?.cm_tile_size_cm ?? line?.tileSizeCm) as unknown)
   if (explicit > 0) return { w: explicit, h: explicit }
   const name = String(line?.item_name || line?.item_code || '')
-  const m = name.match(/(\d+\.?\d*)\s*[×xX*]\s*(\d+\.?\d*)\s*cm/i)
-  if (m) return { w: parseFloat(m[1]), h: parseFloat(m[2]) }
+  // Match "60 x 60 cm" (with cm) or trailing "60 x 60" / "60x60" at end of name
+  const mCm = name.match(/(\d+\.?\d*)\s*[×xX*]\s*(\d+\.?\d*)\s*cm/i)
+  if (mCm) return { w: parseFloat(mCm[1]), h: parseFloat(mCm[2]) }
+  // Fallback: last "NxM" or "N x M" pattern in the name (common tile naming convention)
+  const mBare = name.match(/(\d+\.?\d*)\s*[×xX*]\s*(\d+\.?\d*)(?:\s*$|(?=\s*[-,]?\s*$))/)
+  if (mBare) return { w: parseFloat(mBare[1]), h: parseFloat(mBare[2]) }
   return { w: 0, h: 0 }
 }
 
