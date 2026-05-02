@@ -90,6 +90,13 @@ def auto_create_batches(doc, method=None):
 
         row.batch_no = generated[item_code]
 
+    if generated:
+        # ERPNext reads has_batch_no via frappe.get_cached_value() in
+        # SerialBatchCreation.set_item_details(). If the cache is stale
+        # (has_batch_no=0 from before batch tracking was enabled), the
+        # submission will fail. Clear the doc cache after assigning batches.
+        frappe.clear_cache()
+
 
 # ── Stock Entry hooks ────────────────────────────────────────────────
 
@@ -263,6 +270,113 @@ def get_fifo_suggestion(item_code, warehouse, needed_qty):
 
 
 @frappe.whitelist()
+def cancel_and_resubmit_stock_entry(name):
+    """Cancel a submitted Stock Entry and re-submit it as a fresh copy so that
+    batch numbers get assigned.
+
+    Call via:
+      bench --site cms.local execute casamoderna_dms.batch_tracking.cancel_and_resubmit_stock_entry --args '["MAT-STE-2026-00001"]'
+    """
+    doc = frappe.get_doc("Stock Entry", name)
+    if doc.docstatus != 1:
+        frappe.throw(f"{name} is not submitted (docstatus={doc.docstatus})")
+
+    print(f"Cancelling {name} …")
+    doc.cancel()
+    frappe.db.commit()
+    print("Cancelled.")
+
+    doc2 = frappe.copy_doc(doc)
+    doc2.amended_from = None
+    for row in doc2.items:
+        row.batch_no = None
+        row.serial_no = None
+    doc2.insert(ignore_permissions=True)
+    frappe.db.commit()
+    print(f"Draft created: {doc2.name}")
+
+    # Explicitly assign batches now (don't rely on hook timing vs ERPNext's
+    # on_submit bundle creation which also needs batch_no set on the rows).
+    _assign_batches_to_draft(doc2)
+    doc2.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    # Clear Frappe's document cache before submitting.
+    # ERPNext v15 reads has_batch_no via frappe.get_cached_value() inside
+    # SerialBatchCreation.set_item_details().  If the cache still holds the
+    # old has_batch_no=0 value (from before enable_batch_tracking_on_items
+    # was run), the bundle creation overwrites batches={None: qty} and the
+    # submission fails with "Batch No is mandatory".
+    frappe.clear_cache()
+
+    doc2 = frappe.get_doc("Stock Entry", name)
+    doc2.submit()
+    frappe.db.commit()
+    print(f"Submitted: {doc2.name}")
+    for row in doc2.items:
+        print(f"  {row.item_code}  ->  batch_no = {row.batch_no}")
+
+    return {"new_name": doc2.name}
+
+
+def assign_batches_to_draft(name):
+    """Assign batch numbers to a draft Stock Entry (Material Receipt) without submitting.
+    Useful for MAT-STE-2026-00002 if it already exists as a draft.
+
+    Call via:
+      bench --site cms.local execute casamoderna_dms.batch_tracking.assign_batches_to_draft --args '["MAT-STE-2026-00002"]'
+    """
+    doc = frappe.get_doc("Stock Entry", name)
+    if doc.docstatus != 0:
+        frappe.throw(f"{name} is not a draft (docstatus={doc.docstatus})")
+    if doc.stock_entry_type != "Material Receipt":
+        frappe.throw(f"{name} is not a Material Receipt")
+
+    _assign_batches_to_draft(doc)
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    doc2 = frappe.get_doc("Stock Entry", name)
+    doc2.submit()
+    frappe.db.commit()
+    print(f"Submitted: {doc2.name}")
+    for row in doc2.items:
+        print(f"  {row.item_code}  ->  batch_no = {row.batch_no}")
+    return {"submitted": doc2.name}
+
+
+def _assign_batches_to_draft(doc):
+    """Internal: generate and assign batch codes to all eligible rows in a draft Stock Entry."""
+    batch_flags = {}
+    generated = {}
+
+    for row in doc.items:
+        item_code = getattr(row, "item_code", None)
+        if not item_code:
+            continue
+        if getattr(row, "batch_no", None):
+            continue
+
+        if item_code not in batch_flags:
+            batch_flags[item_code] = frappe.db.get_value("Item", item_code, "has_batch_no")
+        if not batch_flags[item_code]:
+            continue
+
+        if item_code not in generated:
+            code = _generate_batch_code()
+            batch = frappe.get_doc({
+                "doctype": "Batch",
+                "batch_id": code,
+                "item": item_code,
+                "manufacturing_date": doc.posting_date,
+            })
+            batch.insert(ignore_permissions=True)
+            generated[item_code] = code
+            print(f"  Created Batch {code} for {item_code}")
+
+        row.batch_no = generated[item_code]
+
+
 def enable_batch_tracking_on_items():
     """Enable has_batch_no=1 on all active stock items.
 
