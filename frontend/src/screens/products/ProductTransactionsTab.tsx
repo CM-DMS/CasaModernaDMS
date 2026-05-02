@@ -167,11 +167,11 @@ export function ProductTransactionsTab({ item }: Props) {
   useEffect(() => {
     frappe
       .call<VelocityData>('casamoderna_dms.api.catalogue_search.get_item_sales_velocity', {
-        item_code: item.item_code,
+        item_code: item.name,
       })
       .then((d) => setVelocity(d))
       .catch(() => {})
-  }, [item.item_code])
+  }, [item.name])
 
   type SoRow = { name: string; transaction_date: string; customer: string; status: string; delivery_date: string }
   type DnRow = { name: string; posting_date: string; customer: string; status: string }
@@ -179,28 +179,28 @@ export function ProductTransactionsTab({ item }: Props) {
   type SiRow = { name: string; posting_date: string; customer: string; status: string }
 
   const so = useParentTransactions<SoRow>(
-    item.item_code,
+    item.name,
     'Sales Order',
     'Sales Order Item',
     ['name', 'transaction_date', 'customer', 'status', 'delivery_date'],
     'transaction_date desc',
   )
   const dn = useParentTransactions<DnRow>(
-    item.item_code,
+    item.name,
     'Delivery Note',
     'Delivery Note Item',
     ['name', 'posting_date', 'customer', 'status'],
     'posting_date desc',
   )
   const po = useParentTransactions<PoRow>(
-    item.item_code,
+    item.name,
     'Purchase Order',
     'Purchase Order Item',
     ['name', 'transaction_date', 'supplier', 'status', 'schedule_date'],
     'transaction_date desc',
   )
   const si = useParentTransactions<SiRow>(
-    item.item_code,
+    item.name,
     'Sales Invoice',
     'Sales Invoice Item',
     ['name', 'posting_date', 'customer', 'status'],
